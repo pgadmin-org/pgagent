@@ -16,7 +16,7 @@ IF(WIN32)
 
     ADD_LIBRARY(pgaevent MODULE ${_srcs})
 
-    INSTALL(TARGETS pgaevent DESTINATION bin)
+    INSTALL(TARGETS pgaevent DESTINATION .)
 ENDIF(WIN32)
 
 

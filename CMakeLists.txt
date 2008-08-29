@@ -165,8 +165,14 @@ ELSE(WIN32)
     ENDIF(${wxWidgets_USE_STATIC})
 ENDIF(WIN32)
 
-INSTALL(TARGETS pgagent DESTINATION bin)
-INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
+# Installation
+IF (WIN32)
+    INSTALL(TARGETS pgagent DESTINATION .)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION .)
+ELSE(WIN32)
+    INSTALL(TARGETS pgagent DESTINATION bin)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
+ENDIF(WIN32)
 
 ################################################################################
 # pgaevent
