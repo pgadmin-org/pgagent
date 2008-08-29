@@ -23,7 +23,7 @@ SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
 ################################################################################
 # Apple stuff
 ################################################################################
-IF(APPLE)
+IF(XXAPPLE)
     # Setup default values
     IF(NOT HAVE_CACHED_VALUES)
         IF(EXISTS /Developer/SDKs/MacOSX10.5.sdk)
@@ -41,12 +41,14 @@ IF(APPLE)
 
     # Target Tiger
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.4")
-ENDIF(APPLE)
+ENDIF(XXAPPLE)
 
 ################################################################################
 # Project config
 ################################################################################
 PROJECT(pgagent)
+
+SET(CMAKE_MODULE_PATH "${pgagent_SOURCE_DIR}/cmake/")
 
 SET(VERSION 2.0.0)
 
@@ -65,9 +67,44 @@ SET(CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store;/CVS/;/\\\\.svn/;\\\\.swp$;\\\\.#;/
 INCLUDE(CPACK)
 
 ################################################################################
+# pgAgent 
+################################################################################
+INCLUDE_DIRECTORIES(${pgagent_SOURCE_DIR}
+                    ${pgagent_SOURCE_DIR}/include)
+
+FILE(GLOB _cpp_files *.cpp)
+FILE(GLOB _h_files include/*.h)
+
+SET(_srcs ${_cpp_files} ${_h_files})
+ 
+SET(PROJECT_SOURCE_FILES ${_srcs})
+IF( WIN32)
+    SET(PROJECT_RC_FILE pgagent.rc)
+ELSE( WIN32)
+    SET(PROJECT_RC_FILE "")
+ENDIF( WIN32)
+
+INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
+
+################################################################################
+# Find wxWidgets (this will create the target so must be after we setup sources
+# but before we figure out where PostgreSQL is.
+################################################################################
+SET(WXW_USE_DEBUG OFF)
+SET(WXW_USE_UNICODE ON)
+SET(WXW_USE_SHARED OFF)
+SET(WXW_USE_UNIV OFF)
+SET(WXW_USE_MONO OFF)
+SET(WXW_FILE_VERSION "28")
+SET(WXW_VERSION "2.8")
+
+INCLUDE (FindwxW)
+INCLUDE (UsewxW)
+
+################################################################################
 # Find PostgreSQL
 ################################################################################
-FIND_PROGRAM(PostgreSQL_CONFIG_EXECUTABLE pg_config
+FIND_PROGRAM(POSTGRESQL_CONFIG_EXECUTABLE pg_config
              PATH $ENV{PGDIR}/bin
                   /usr/local/pgsql/bin
                   /opt/PostgreSQL/*/bin
@@ -75,98 +112,38 @@ FIND_PROGRAM(PostgreSQL_CONFIG_EXECUTABLE pg_config
                   $ENV{ProgramFiles}/PostgreSQL/*/bin
                   $ENV{SystemDrive}/PostgreSQL/*/bin)
 
-IF(NOT PostgreSQL_CONFIG_EXECUTABLE)
+IF(NOT POSTGRESQL_CONFIG_EXECUTABLE)
     MESSAGE(FATAL_ERROR "PostgreSQL could not be found!")
-ENDIF(NOT PostgreSQL_CONFIG_EXECUTABLE)
+ENDIF(NOT POSTGRESQL_CONFIG_EXECUTABLE)
 
-EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --version OUTPUT_VARIABLE PostgreSQL_VERSION)
+EXEC_PROGRAM(${POSTGRESQL_CONFIG_EXECUTABLE} ARGS --version OUTPUT_VARIABLE POSTGRESQL_VERSION)
 
 IF(WIN32)
     # Strip the bin and pg_config from the path
-    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_CONFIG_EXECUTABLE} PATH)
-    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_PATH} PATH)
+    GET_FILENAME_COMPONENT(POSTGRESQL_PATH ${POSTGRESQL_CONFIG_EXECUTABLE} PATH)
+    GET_FILENAME_COMPONENT(POSTGRESQL_PATH ${POSTGRESQL_PATH} PATH)
 
-    SET(PostgreSQL_INCLUDES "${PostgreSQL_PATH}/include")
-    SET(PostgreSQL_LIBRARIES "${PostgreSQL_PATH}/lib")
+    SET(POSTGRESQL_INCLUDES "${POSTGRESQL_PATH}/include")
+    SET(POSTGRESQL_LIBRARIES "${POSTGRESQL_PATH}/lib")
 ELSE(WIN32)
-    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --includedir OUTPUT_VARIABLE PostgreSQL_INCLUDES)
-    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --libdir OUTPUT_VARIABLE PostgreSQL_LIBRARIES)
+    EXEC_PROGRAM(${POSTGRESQL_CONFIG_EXECUTABLE} ARGS --includedir OUTPUT_VARIABLE POSTGRESQL_INCLUDES)
+    EXEC_PROGRAM(${POSTGRESQL_CONFIG_EXECUTABLE} ARGS --libdir OUTPUT_VARIABLE POSTGRESQL_LIBRARIES)
 ENDIF(WIN32)
 
-INCLUDE_DIRECTORIES(. ${PostgreSQL_INCLUDES})
-LINK_DIRECTORIES(. ${PostgreSQL_LIBRARIES})
-
-################################################################################
-# Find wxWidgets
-################################################################################
-IF(NOT HAVE_CACHED_VALUES)
-    SET(wxWidgets_USE_UNICODE ON CACHE BOOL "Use unicode build?" FORCE)
-    SET(wxWidgets_USE_DEBUG OFF CACHE BOOL "Use debug build?" FORCE)
-    SET(wxWidgets_USE_STATIC ON CACHE BOOL "Link libraries statically?" FORCE)
-ENDIF(NOT HAVE_CACHED_VALUES)
-
-SET(wxWidgets_USE_LIBS adv base core net xml)
-FIND_PACKAGE(wxWidgets)
-
-IF(NOT wxWidgets_FOUND)
-    MESSAGE(FATAL_ERROR "wxWidgets could not be found!")
-ENDIF(NOT wxWidgets_FOUND)
-
-INCLUDE(${wxWidgets_USE_FILE})
-
-IF(NOT WIN32)
-    # Get the wxWidgets version
-    EXECUTE_PROCESS(
-        COMMAND sh "${wxWidgets_CONFIG_EXECUTABLE}" --version
-        OUTPUT_VARIABLE wxWidgets_VERSION
-        RESULT_VARIABLE RET
-        ERROR_QUIET
-    )
-    STRING(STRIP ${wxWidgets_VERSION} wxWidgets_VERSION)
-
-    IF(NOT ${wxWidgets_VERSION} MATCHES "^2.8.")
-        MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x (${wxWidgets_VERSION} found)")
-    ENDIF(NOT ${wxWidgets_VERSION} MATCHES "^2.8.")
-ELSE(NOT WIN32)
-    IF(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
-        MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x")
-    ELSE(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
-        SET(wxWidgets_VERSION "2.8.x")
-    ENDIF(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
-ENDIF(NOT WIN32)
-
-################################################################################
-# Let's rock!
-################################################################################
-INCLUDE_DIRECTORIES(${pgagent_SOURCE_DIR}
-                    ${pgagent_SOURCE_DIR}/include
-                    ${wxWidgets_INCLUDE_DIRS} )
-
-FILE(GLOB _cpp_files *.cpp)
-FILE(GLOB _h_files include/*.h)
-
-SET(_srcs ${_cpp_files} ${_h_files})
- 
-IF(WIN32)
-    SET(_srcs ${_srcs} pgagent.rc)
-ENDIF(WIN32)
- 
-ADD_EXECUTABLE(pgagent ${_srcs})
+INCLUDE_DIRECTORIES(${POSTGRESQL_INCLUDES})
 
 # Setup linking
 IF(WIN32)
     # There is no static libpq on PostgreSQL 8.3+ (VC++ built)
-    TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.lib)
+    TARGET_LINK_LIBRARIES(pgagent ${POSTGRESQL_LIBRARIES}/libpq.lib)
 ELSE(WIN32)
-    IF(${wxWidgets_USE_STATIC})
-        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.a)
-    ELSE(${wxWidgets_USE_STATIC})
-        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} pq)
-    ENDIF(${wxWidgets_USE_STATIC})
+    IF(${WXWIDGETS_USE_SHARED})
+        LINK_DIRECTORIES(${POSTGRESQL_LIBRARIES})
+        TARGET_LINK_LIBRARIES(pgagent pq)
+    ELSE(${WXWIDGETS_USE_SHARED})
+        TARGET_LINK_LIBRARIES(pgagent ${POSTGRESQL_LIBRARIES}/libpq.a)
+    ENDIF(${WXWIDGETS_USE_SHARED})
 ENDIF(WIN32)
-
-INSTALL(TARGETS pgagent DESTINATION bin)
-INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
 
 ################################################################################
 # Build summary
@@ -183,16 +160,16 @@ MESSAGE(STATUS "  Project                     : ${PROJECT_NAME}")
 MESSAGE(STATUS "  Description                 : ${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
 MESSAGE(STATUS "  Version                     : ${VERSION}")
 MESSAGE(STATUS " ")
-MESSAGE(STATUS "  PostgreSQL version          : ${PostgreSQL_VERSION}")
-MESSAGE(STATUS "  PostgreSQL config binary    : ${PostgreSQL_CONFIG_EXECUTABLE}")
-MESSAGE(STATUS "  PostgreSQL include path     : ${PostgreSQL_INCLUDES}")
-MESSAGE(STATUS "  PostgreSQL library path     : ${PostgreSQL_LIBRARIES}")
+MESSAGE(STATUS "  PostgreSQL version          : ${POSTGRESQL_VERSION}")
+MESSAGE(STATUS "  PostgreSQL config binary    : ${POSTGRESQL_CONFIG_EXECUTABLE}")
+MESSAGE(STATUS "  PostgreSQL include path     : ${POSTGRESQL_INCLUDES}")
+MESSAGE(STATUS "  PostgreSQL library path     : ${POSTGRESQL_LIBRARIES}")
 MESSAGE(STATUS " ")
-MESSAGE(STATUS "  wxWidgets version           : ${wxWidgets_VERSION}")
-MESSAGE(STATUS "  wxWidgets config binary     : ${wxWidgets_CONFIG_EXECUTABLE}")
-MESSAGE(STATUS "  wxWidgets Static linking    : ${wxWidgets_USE_STATIC}")
-MESSAGE(STATUS "  wxWidgets Unicode?          : ${wxWidgets_USE_UNICODE}")
-MESSAGE(STATUS "  wxWidgets Debug?            : ${wxWidgets_USE_DEBUG}")
+MESSAGE(STATUS "  wxWidgets version           : ${WXWIDGETS_VERSION}")
+MESSAGE(STATUS "  wxWidgets config binary     : ${WXWIDGETS_CONFIG_EXECUTABLE}")
+MESSAGE(STATUS "  wxWidgets dynamic linking   : ${WXWIDGETS_USE_SHARED}")
+MESSAGE(STATUS "  wxWidgets unicode?          : ${WXWIDGETS_USE_UNICODE}")
+MESSAGE(STATUS "  wxWidgets debug?            : ${WXWIDGETS_USE_DEBUG}")
 MESSAGE(STATUS "================================================================================")
 MESSAGE(STATUS " ")
 
