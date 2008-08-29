@@ -105,7 +105,7 @@ IF(NOT HAVE_CACHED_VALUES)
     SET(wxWidgets_USE_STATIC ON CACHE BOOL "Link libraries statically?" FORCE)
 ENDIF(NOT HAVE_CACHED_VALUES)
 
-SET(wxWidgets_USE_LIBS base core)
+SET(wxWidgets_USE_LIBS base)
 FIND_PACKAGE(wxWidgets)
 
 IF(NOT wxWidgets_FOUND)
@@ -128,11 +128,11 @@ IF(NOT WIN32)
         MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x (${wxWidgets_VERSION} found)")
     ENDIF(NOT ${wxWidgets_VERSION} MATCHES "^2.8.")
 ELSE(NOT WIN32)
-    IF(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
+    IF(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
         MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x")
-    ELSE(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
+    ELSE(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
         SET(wxWidgets_VERSION "2.8.x")
-    ENDIF(NOT wxWidgets_LIBRARIES MATCHES "wxmsw28")
+    ENDIF(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
 ENDIF(NOT WIN32)
 
 ################################################################################
