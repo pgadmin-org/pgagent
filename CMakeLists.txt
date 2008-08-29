@@ -68,15 +68,30 @@ INCLUDE(CPACK)
 # Find PostgreSQL
 ################################################################################
 FIND_PROGRAM(PostgreSQL_CONFIG_EXECUTABLE pg_config
-             PATH /usr/local/pgsql/bin /opt/PostgreSQL/8.3/bin /Library/PostgreSQL/8.3/bin)
+             PATH $ENV{PGDIR}/bin
+                  /usr/local/pgsql/bin
+                  /opt/PostgreSQL/*/bin
+                  /Library/PostgreSQL/*/bin
+                  $ENV{ProgramFiles}/PostgreSQL/*/bin
+                  $ENV{SystemDrive}/PostgreSQL/*/bin)
 
 IF(NOT PostgreSQL_CONFIG_EXECUTABLE)
     MESSAGE(FATAL_ERROR "PostgreSQL could not be found!")
 ENDIF(NOT PostgreSQL_CONFIG_EXECUTABLE)
 
 EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --version OUTPUT_VARIABLE PostgreSQL_VERSION)
-EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --includedir OUTPUT_VARIABLE PostgreSQL_INCLUDES)
-EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --libdir OUTPUT_VARIABLE PostgreSQL_LIBRARIES)
+
+IF(WIN32)
+    # Strip the bin and pg_config from the path
+    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_CONFIG_EXECUTABLE} PATH)
+    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_PATH} PATH)
+
+    SET(PostgreSQL_INCLUDES "${PostgreSQL_PATH}/include")
+    SET(PostgreSQL_LIBRARIES "${PostgreSQL_PATH}/lib")
+ELSE(WIN32)
+    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --includedir OUTPUT_VARIABLE PostgreSQL_INCLUDES)
+    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --libdir OUTPUT_VARIABLE PostgreSQL_LIBRARIES)
+ENDIF(WIN32)
 
 INCLUDE_DIRECTORIES(. ${PostgreSQL_INCLUDES})
 LINK_DIRECTORIES(. ${PostgreSQL_LIBRARIES})
@@ -136,14 +151,19 @@ IF(WIN32)
     SET(_srcs ${_srcs} pgagent.rc)
 ENDIF(WIN32)
  
-ADD_EXECUTABLE(pgagent WIN32 ${_srcs})
+ADD_EXECUTABLE(pgagent ${_srcs})
 
 # Setup linking
-IF(${wxWidgets_USE_STATIC})
-    TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.a)
-ELSE(${wxWidgets_USE_STATIC})
-    TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} pq)
-ENDIF(${wxWidgets_USE_STATIC})
+IF(WIN32)
+    # There is no static libpq on PostgreSQL 8.3+ (VC++ built)
+    TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.lib)
+ELSE(WIN32)
+    IF(${wxWidgets_USE_STATIC})
+        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.a)
+    ELSE(${wxWidgets_USE_STATIC})
+        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} pq)
+    ENDIF(${wxWidgets_USE_STATIC})
+ENDIF(WIN32)
 
 INSTALL(TARGETS pgagent DESTINATION bin)
 INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
@@ -165,6 +185,8 @@ MESSAGE(STATUS "  Version                     : ${VERSION}")
 MESSAGE(STATUS " ")
 MESSAGE(STATUS "  PostgreSQL version          : ${PostgreSQL_VERSION}")
 MESSAGE(STATUS "  PostgreSQL config binary    : ${PostgreSQL_CONFIG_EXECUTABLE}")
+MESSAGE(STATUS "  PostgreSQL include path     : ${PostgreSQL_INCLUDES}")
+MESSAGE(STATUS "  PostgreSQL library path     : ${PostgreSQL_LIBRARIES}")
 MESSAGE(STATUS " ")
 MESSAGE(STATUS "  wxWidgets version           : ${wxWidgets_VERSION}")
 MESSAGE(STATUS "  wxWidgets config binary     : ${wxWidgets_CONFIG_EXECUTABLE}")
