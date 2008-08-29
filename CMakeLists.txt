@@ -105,7 +105,7 @@ IF(NOT HAVE_CACHED_VALUES)
     SET(wxWidgets_USE_STATIC ON CACHE BOOL "Link libraries statically?" FORCE)
 ENDIF(NOT HAVE_CACHED_VALUES)
 
-SET(wxWidgets_USE_LIBS adv base core net xml)
+SET(wxWidgets_USE_LIBS base core)
 FIND_PACKAGE(wxWidgets)
 
 IF(NOT wxWidgets_FOUND)
