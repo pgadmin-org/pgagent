@@ -13,18 +13,14 @@ LANGUAGE 0x9,0x1
 1 11 MSG00001.bin
 
 #include <winver.h>
-#include "../../pgadmin/include/version.h"
-#include "../../pgadmin/include/copyright.h"
 
 // Icon (Don't remove the aaa prefix - it makes it the default icon)
-aaaPGAEVENT      ICON    DISCARDABLE     "../../pgadmin/include/images/pgAdmin3.ico"
+aaaPGAEVENT      ICON    DISCARDABLE     "../include/pgagent.ico"
 
 
 VS_VERSION_INFO VERSIONINFO 
-FILEVERSION    VERSION_NUM
-PRODUCTVERSION VERSION_NUM
-FILEFLAGSMASK  VER_DEBUG|VER_PRERELEASE
-FILEFLAGS      VER_DEBUG|VER_PRERELEASE
+FILEVERSION    2,0,0,0
+PRODUCTVERSION 2,0,0,0
 FILEOS         VOS__WINDOWS32
 FILETYPE       VFT_APP
 BEGIN
@@ -32,19 +28,16 @@ BEGIN
     BEGIN
         BLOCK "040904E4"
         BEGIN 
-            VALUE "FileVersion",     VERSION_STR, "\0"
-            VALUE "File Version",    VERSION_STR, "\0"
+            VALUE "FileVersion",     "2.0.0", "\0"
+            VALUE "File Version",    "2.0.0", "\0"
             VALUE "FileDescription", "pgaevent - pgAgent Event Log Message DLL", "\0"
-            VALUE "LegalCopyright",  COPYRIGHT_WIN32, "\0"
-            VALUE "LegalTrademarks", LICENSE, "\0"
+            VALUE "LegalCopyright",  "\251 2002 - 2008, The pgAdmin Development Team", "\0"
+            VALUE "LegalTrademarks", "This software is released under the Artistic License.", "\0"
             VALUE "InternalName",    "pgaevent", "\0"
             VALUE "OriginalFilename","pgaevent.dll", "\0"
-            VALUE "ProductName",     "pgAdmin III", "\0"
-            VALUE "ProductVersion",  VERSION_STR, "\0"
-#ifdef BUILD
-            VALUE "Build",           BUILD, "\0"
-#endif
-        END 
+            VALUE "ProductName",     "pgAgent", "\0"
+            VALUE "ProductVersion",  "2.0.0", "\0"
+        END
     END
     BLOCK "VarFileInfo" 
     BEGIN 
