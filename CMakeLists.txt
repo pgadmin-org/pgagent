@@ -62,7 +62,7 @@ SET(CPACK_SOURCE_GENERATOR TGZ)
 SET(CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store;/CVS/;/\\\\.svn/;\\\\.swp$;\\\\.#;/#;.*~;cscope.*")
 
 # This must come after we set the CPACK variables!!
-INCLUDE(CPACK)
+INCLUDE(CPack)
 
 ################################################################################
 # Find PostgreSQL
@@ -173,6 +173,9 @@ ELSE(WIN32)
     INSTALL(TARGETS pgagent DESTINATION bin)
     INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
 ENDIF(WIN32)
+
+INSTALL(FILES ${pgagent_SOURCE_DIR}/README DESTINATION .)
+INSTALL(FILES ${pgagent_SOURCE_DIR}/LICENSE DESTINATION .)
 
 ################################################################################
 # pgaevent
