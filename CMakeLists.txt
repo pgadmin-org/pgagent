@@ -17,8 +17,12 @@ IF(COMMAND cmake_policy)
     CMAKE_POLICY(SET CMP0003 NEW)
 ENDIF(COMMAND cmake_policy)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 SET(CMAKE_FIND_LIBRARY_PREFIXES "")
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+
+SET(STATIC_BUILD YES CACHE BOOL "Statically link the executable?")
 
 ################################################################################
 # Apple stuff
@@ -65,82 +69,36 @@ SET(CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store;/CVS/;/\\\\.svn/;\\\\.swp$;\\\\.#;/
 INCLUDE(CPack)
 
 ################################################################################
-# Find PostgreSQL
-################################################################################
-FIND_PROGRAM(PostgreSQL_CONFIG_EXECUTABLE pg_config
-             PATH $ENV{PGDIR}/bin
-                  /usr/local/pgsql/bin
-                  /opt/PostgreSQL/*/bin
-                  /Library/PostgreSQL/*/bin
-                  $ENV{ProgramFiles}/PostgreSQL/*/bin
-                  $ENV{SystemDrive}/PostgreSQL/*/bin)
-
-IF(NOT PostgreSQL_CONFIG_EXECUTABLE)
-    MESSAGE(FATAL_ERROR "PostgreSQL could not be found!")
-ENDIF(NOT PostgreSQL_CONFIG_EXECUTABLE)
-
-EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --version OUTPUT_VARIABLE PostgreSQL_VERSION)
-
-IF(WIN32)
-    # Strip the bin and pg_config from the path
-    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_CONFIG_EXECUTABLE} PATH)
-    GET_FILENAME_COMPONENT(PostgreSQL_PATH ${PostgreSQL_PATH} PATH)
-
-    SET(PostgreSQL_INCLUDES "${PostgreSQL_PATH}/include")
-    SET(PostgreSQL_LIBRARIES "${PostgreSQL_PATH}/lib")
-ELSE(WIN32)
-    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --includedir OUTPUT_VARIABLE PostgreSQL_INCLUDES)
-    EXEC_PROGRAM(${PostgreSQL_CONFIG_EXECUTABLE} ARGS --libdir OUTPUT_VARIABLE PostgreSQL_LIBRARIES)
-ENDIF(WIN32)
-
-INCLUDE_DIRECTORIES(. ${PostgreSQL_INCLUDES})
-LINK_DIRECTORIES(. ${PostgreSQL_LIBRARIES})
-
-################################################################################
 # Find wxWidgets
 ################################################################################
-IF(NOT HAVE_CACHED_VALUES)
-    SET(wxWidgets_USE_UNICODE ON CACHE BOOL "Use unicode build?" FORCE)
-    SET(wxWidgets_USE_DEBUG OFF CACHE BOOL "Use debug build?" FORCE)
-    SET(wxWidgets_USE_STATIC ON CACHE BOOL "Link libraries statically?" FORCE)
-ENDIF(NOT HAVE_CACHED_VALUES)
+SET(WX_DEBUG NO CACHE BOOL "Use the debug build of wxWidgets?")
+SET(WX_STATIC ${STATIC_BUILD})
+SET(WX_VERSION "2.8")
+SET(WX_UNICODE YES)
+SET(WX_MODULES "base")
 
-SET(wxWidgets_USE_LIBS base)
-FIND_PACKAGE(wxWidgets)
+FIND_PACKAGE(WX REQUIRED)
 
-IF(NOT wxWidgets_FOUND)
-    MESSAGE(FATAL_ERROR "wxWidgets could not be found!")
-ENDIF(NOT wxWidgets_FOUND)
+INCLUDE_DIRECTORIES(${WX_INCLUDE_DIRS})
+ADD_DEFINITIONS(${WX_DEFINITIONS})
+LINK_DIRECTORIES(${WX_LIBRARY_DIRS})
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WX_CXX_FLAGS}")
 
-INCLUDE(${wxWidgets_USE_FILE})
+################################################################################
+# Find PostgreSQL
+################################################################################
+SET(PG_STATIC ${WX_STATIC})
 
-IF(NOT WIN32)
-    # Get the wxWidgets version
-    EXECUTE_PROCESS(
-        COMMAND sh "${wxWidgets_CONFIG_EXECUTABLE}" --version
-        OUTPUT_VARIABLE wxWidgets_VERSION
-        RESULT_VARIABLE RET
-        ERROR_QUIET
-    )
-    STRING(STRIP ${wxWidgets_VERSION} wxWidgets_VERSION)
+FIND_PACKAGE(PG REQUIRED)
 
-    IF(NOT ${wxWidgets_VERSION} MATCHES "^2.8.")
-        MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x (${wxWidgets_VERSION} found)")
-    ENDIF(NOT ${wxWidgets_VERSION} MATCHES "^2.8.")
-ELSE(NOT WIN32)
-    IF(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
-        MESSAGE(FATAL_ERROR "wxWidgets must be version 2.8.x")
-    ELSE(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
-        SET(wxWidgets_VERSION "2.8.x")
-    ENDIF(NOT wxWidgets_LIBRARIES MATCHES "wxbase28")
-ENDIF(NOT WIN32)
+INCLUDE_DIRECTORIES(${PG_INCLUDE_DIRS})
+LINK_DIRECTORIES(${PG_LIBRARY_DIRS})
 
 ################################################################################
 # Let's rock!
 ################################################################################
 INCLUDE_DIRECTORIES(${pgagent_SOURCE_DIR}
-                    ${pgagent_SOURCE_DIR}/include
-                    ${wxWidgets_INCLUDE_DIRS} )
+                    ${pgagent_SOURCE_DIR}/include)
 
 FILE(GLOB _cpp_files *.cpp)
 FILE(GLOB _h_files include/*.h)
@@ -152,18 +110,7 @@ IF(WIN32)
 ENDIF(WIN32)
  
 ADD_EXECUTABLE(pgagent ${_srcs})
-
-# Setup linking
-IF(WIN32)
-    # There is no static libpq on PostgreSQL 8.3+ (VC++ built)
-    TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.lib)
-ELSE(WIN32)
-    IF(${wxWidgets_USE_STATIC})
-        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} ${PostgreSQL_LIBRARIES}/libpq.a)
-    ELSE(${wxWidgets_USE_STATIC})
-        TARGET_LINK_LIBRARIES(pgagent ${wxWidgets_LIBRARIES} pq)
-    ENDIF(${wxWidgets_USE_STATIC})
-ENDIF(WIN32)
+TARGET_LINK_LIBRARIES(pgagent ${PG_LIBRARIES} ${WX_LIBRARIES})
 
 # Installation
 IF (WIN32)
@@ -199,16 +146,17 @@ MESSAGE(STATUS "  Project                     : ${PROJECT_NAME}")
 MESSAGE(STATUS "  Description                 : ${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
 MESSAGE(STATUS "  Version                     : ${VERSION}")
 MESSAGE(STATUS " ")
-MESSAGE(STATUS "  PostgreSQL version          : ${PostgreSQL_VERSION}")
-MESSAGE(STATUS "  PostgreSQL config binary    : ${PostgreSQL_CONFIG_EXECUTABLE}")
-MESSAGE(STATUS "  PostgreSQL include path     : ${PostgreSQL_INCLUDES}")
-MESSAGE(STATUS "  PostgreSQL library path     : ${PostgreSQL_LIBRARIES}")
+MESSAGE(STATUS "  PostgreSQL version          : ${PG_VERSION_STRING}")
+MESSAGE(STATUS "  PostgreSQL path             : ${PG_ROOT_DIR}")
+MESSAGE(STATUS "  PostgreSQL config binary    : ${PG_CONFIG_PATH}")
+MESSAGE(STATUS "  PostgreSQL include path     : ${PG_INCLUDE_DIRS}")
+MESSAGE(STATUS "  PostgreSQL library path     : ${PG_LIBRARY_DIRS}")
 MESSAGE(STATUS " ")
-MESSAGE(STATUS "  wxWidgets version           : ${wxWidgets_VERSION}")
-MESSAGE(STATUS "  wxWidgets config binary     : ${wxWidgets_CONFIG_EXECUTABLE}")
-MESSAGE(STATUS "  wxWidgets Static linking    : ${wxWidgets_USE_STATIC}")
-MESSAGE(STATUS "  wxWidgets Unicode?          : ${wxWidgets_USE_UNICODE}")
-MESSAGE(STATUS "  wxWidgets Debug?            : ${wxWidgets_USE_DEBUG}")
+MESSAGE(STATUS "  wxWidgets version           : ${WX_VERSION_STRING}")
+MESSAGE(STATUS "  wxWidgets path              : ${WX_ROOT_DIR}")
+MESSAGE(STATUS "  wxWidgets config binary     : ${WX_CONFIG_PATH}")
+MESSAGE(STATUS "  wxWidgets Static linking    : ${WX_STATIC}")
+MESSAGE(STATUS "  wxWidgets Debug?            : ${WX_DEBUG}")
 MESSAGE(STATUS "================================================================================")
 MESSAGE(STATUS " ")
 
