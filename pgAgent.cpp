@@ -34,10 +34,7 @@ int MainRestartLoop(DBconn *serviceConn)
     int rc;
 
     LogMessage(_("Clearing zombies"), LOG_DEBUG);
-    rc=serviceConn->ExecuteVoid(
-        wxT("CREATE TEMP TABLE pga_tmp_zombies(jagpid int4)"));
-
-    rc=serviceConn->ExecuteVoid(wxT("DELETE FROM pga_tmp_zombies"));
+    rc=serviceConn->ExecuteVoid(wxT("CREATE TEMP TABLE pga_tmp_zombies(jagpid int4)"));
 
     rc = serviceConn->ExecuteVoid(
         wxT("INSERT INTO pga_tmp_zombies (jagpid) ")
@@ -69,6 +66,8 @@ int MainRestartLoop(DBconn *serviceConn)
             wxT("  WHERE jagpid IN (SELECT jagpid FROM pga_tmp_zombies);\n")
             );
     }
+	
+    rc=serviceConn->ExecuteVoid(wxT("DROP TABLE pga_tmp_zombies"));
 
     wxString hostname = wxGetFullHostName();
 
