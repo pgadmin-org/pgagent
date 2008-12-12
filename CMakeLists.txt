@@ -52,12 +52,12 @@ ENDIF(APPLE)
 ################################################################################
 PROJECT(pgagent)
 
-SET(VERSION 2.0.0)
+SET(VERSION 2.0.1)
 
 # CPack stuff
 SET(CPACK_PACKAGE_VERSION_MAJOR 2)
 SET(CPACK_PACKAGE_VERSION_MINOR 0)
-SET(CPACK_PACKAGE_VERSION_PATCH 0)
+SET(CPACK_PACKAGE_VERSION_PATCH 1)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
 SET(CPACK_PACKAGE_VENDOR "the pgAdmin Development Team")
