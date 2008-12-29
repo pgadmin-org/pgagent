@@ -11,31 +11,34 @@
 
 #include "pgAgent.h"
 
-DBconn *DBconn::primaryConn;
+#include <wx/regex.h>
+#include <wx/tokenzr.h>
+
+DBconn *DBconn::primaryConn = NULL;
 wxString DBconn::basicConnectString;
 static wxMutex s_PoolLock;
-
-DBconn::DBconn(const wxString &db)
-{
-    dbname = db;
-    inUse = false;
-    next=0;
-    prev=0;
-    majorVersion=0;
-    minorVersion=0;
-    Connect(basicConnectString  + wxT(" dbname=") + dbname);
-}
 
 
 DBconn::DBconn(const wxString &connectString, const wxString &db)
 {
-    dbname = db;
     inUse = false;
     next=0;
     prev=0;
     majorVersion=0;
     minorVersion=0;
-    Connect(connectString);
+    dbname = db;
+    connStr = connectString;
+
+    if (connectString.IsEmpty())
+    {
+        // This is a sql call to a local database. 
+        // No connection string found. Use basicConnectString.
+        Connect(basicConnectString  + wxT(" dbname=") + dbname);
+    }
+    else
+    {
+        Connect(connectString);
+    }
 }
 
 
@@ -44,10 +47,7 @@ bool DBconn::Connect(const wxString &connectString)
     LogMessage(wxString::Format(_("Creating DB connection: %s"), connectString.c_str()), LOG_DEBUG);
     wxCharBuffer cstrUTF=connectString.mb_str(wxConvUTF8);
     conn=PQconnectdb(cstrUTF);
-    if (PQstatus(conn) == CONNECTION_OK)
-    {
-    }
-    else
+    if (PQstatus(conn) != CONNECTION_OK)
     {
         lastError = wxString::FromAscii(PQerrorMessage(conn));
         PQfinish(conn);
@@ -55,6 +55,7 @@ bool DBconn::Connect(const wxString &connectString)
     }
     return IsValid();
 }
+
 
 DBconn::~DBconn()
 {
@@ -65,6 +66,7 @@ DBconn::~DBconn()
         conn=0;
     }
 }
+
 
 wxString DBconn::qtDbString(const wxString& value)
 {
@@ -87,15 +89,17 @@ wxString DBconn::qtDbString(const wxString& value)
     return result;
 }
 
+
 bool DBconn::BackendMinimumVersion(int major, int minor)
 {
     if (!majorVersion)
     {
         wxString version=ExecuteScalar(wxT("SELECT version();")) ;
-	    sscanf(version.ToAscii(), "%*s %d.%d", &majorVersion, &minorVersion);
+        sscanf(version.ToAscii(), "%*s %d.%d", &majorVersion, &minorVersion);
     }
-	return majorVersion > major || (majorVersion == major && minorVersion >= minor);
+    return majorVersion > major || (majorVersion == major && minorVersion >= minor);
 }
+
 
 DBconn *DBconn::InitConnection(const wxString &connectString)
 {
@@ -104,79 +108,83 @@ DBconn *DBconn::InitConnection(const wxString &connectString)
     basicConnectString=connectString;
     wxString dbname;
 
-    int pos=basicConnectString.find(wxT("dbname="));
-    if (pos == -1)
-        dbname = wxT("postgres");
+    connInfo cnInfo = connInfo::getConnectionInfo(connectString);
+    if (cnInfo.isValid)
+    {
+        dbname = cnInfo.dbname;
+        basicConnectString = cnInfo.getConnectionString();
+        primaryConn = new DBconn(cnInfo.getConnectionString(), dbname);
+        
+        if (!primaryConn)
+            LogMessage(_("Failed to create primary connection!"), LOG_ERROR);
+        primaryConn->dbname = dbname;
+        primaryConn->inUse = true;
+    }
     else
     {
-        dbname = basicConnectString.substr(pos+7);
-        basicConnectString = basicConnectString.substr(0, pos);
-        pos = dbname.find(wxT(" "));
-        if (pos != -1)
-        {
-            if (basicConnectString.length())
-                basicConnectString += wxT(" ");
-            basicConnectString += dbname.substr(pos+1);
-            dbname = dbname.substr(0, pos);
-        }
+        primaryConn = NULL;
+        LogMessage(wxT("Primary connection string is not valid!"), LOG_ERROR);
     }
-    primaryConn = new DBconn(connectString, dbname);
-
-    if (!primaryConn)
-        LogMessage(_("Failed to create primary connection!"), LOG_ERROR);
-
-    primaryConn->inUse = true;
 
     return primaryConn;
 }
 
 
-DBconn *DBconn::Get(const wxString &db)
+DBconn *DBconn::Get(const wxString &connStr, const wxString &db)
 {
-    if (db.IsEmpty())
+    if (db.IsEmpty() && connStr.IsEmpty())
     {
-        LogMessage(_("Cannot allocate connection - no database specified!"), LOG_WARNING);
+        LogMessage(_("Cannot allocate connection - no database or connection string specified!"), LOG_WARNING);
         return NULL;
     }
 
     wxMutexLocker lock(s_PoolLock);
 
-    DBconn *thisConn = primaryConn, *testConn;
+    DBconn *thisConn = primaryConn, *lastConn;
 
     // find an existing connection
     do
     {
-        if (db == thisConn->dbname && !thisConn->inUse)
+        if (thisConn && ((!db.IsEmpty() && db == thisConn->dbname && connStr.IsEmpty()) || (!connStr.IsEmpty() && connStr == thisConn->connStr)) && !thisConn->inUse)
         {
             LogMessage(wxString::Format(_("Allocating existing connection to database %s"), thisConn->dbname.c_str()), LOG_DEBUG);
             thisConn->inUse = true;
             return thisConn;
         }
 
-        testConn = thisConn;
-        if (thisConn->next != 0)
-            thisConn = thisConn->next;
+        lastConn = thisConn;
+        thisConn = thisConn->next;
 
-    } while (testConn->next != 0);
+    } while (thisConn != 0);
 
 
     // No suitable connection was found, so create a new one.
-    DBconn *newConn=new DBconn(db);
+    DBconn *newConn = NULL;
+    newConn = new DBconn(connStr, db);
+
     if (newConn->conn)
     {
         LogMessage(wxString::Format(_("Allocating new connection to database %s"), newConn->dbname.c_str()), LOG_DEBUG);
         newConn->inUse = true;
-        newConn->prev = thisConn;
-        thisConn->next = newConn;
+        newConn->prev = lastConn;
+        lastConn->next = newConn;
+    }
+    else if (connStr.IsEmpty())
+    {
+        LogMessage(wxString::Format(_("Failed to create new connection to database %s"), db.c_str()), LOG_WARNING);
+        LogMessage(wxString::Format(_("\tError message from connection : (%s)"), newConn->GetLastError().c_str()), LOG_WARNING);
+        return NULL;
     }
     else
     {
-        LogMessage(wxString::Format(_("Failed to create new connection to database %s"), db.c_str()), LOG_WARNING);
+        LogMessage(wxString::Format(_("Failed to create new connection for connection string: %s"), connStr.c_str()), LOG_WARNING);
+        LogMessage(wxString::Format(_("\tError message from connection : (%s)"), newConn->GetLastError().c_str()), LOG_WARNING);
         return NULL;
     }
 
     return newConn;
 }
+
 
 void DBconn::Return()
 {
@@ -189,6 +197,7 @@ void DBconn::Return()
     LogMessage(wxString::Format(_("Returning connection to database %s"), dbname.c_str()), LOG_DEBUG);
     inUse = false;
 }
+
 
 void DBconn::ClearConnections(bool all)
 {
@@ -271,6 +280,7 @@ DBresult *DBconn::Execute(const wxString &query)
     return res;
 }
 
+
 wxString DBconn::ExecuteScalar(const wxString& query)
 {
     int rows=-1;
@@ -286,6 +296,7 @@ wxString DBconn::ExecuteScalar(const wxString& query)
     return wxEmptyString;
 }
 
+
 int DBconn::ExecuteVoid(const wxString &query)
 {
     int rows=-1;
@@ -297,6 +308,7 @@ int DBconn::ExecuteVoid(const wxString &query)
     }
     return rows;
 }
+
 
 wxString DBconn::GetLastError()
 {
@@ -312,8 +324,6 @@ wxString DBconn::GetLastError()
 }
 
 ///////////////////////////////////////////////////////7
-
-
 
 DBresult::DBresult(DBconn *conn, const wxString &query)
 {
@@ -370,5 +380,174 @@ wxString DBresult::GetString(const wxString &colname) const
         return wxT("");
     }
     return GetString(col);
+}
+
+///////////////////////////////////////////////////////7
+
+bool connInfo::IsValidIP()
+{
+    if (host.IsEmpty())
+        return false;
+
+    // check for IPv4 format
+    wxStringTokenizer tkip4(host, wxT("."));
+    int count = 0;
+    
+    while (tkip4.HasMoreTokens())
+    {
+        unsigned long val = 0;
+        if (!tkip4.GetNextToken().ToULong(&val))
+            break;
+        if (count == 0 || count == 3)
+            if (val > 0 && val < 255)
+                count++;
+            else
+                break;
+        else if (val >= 0 && val < 255)
+            count++;
+        else
+            break;
+    }
+
+    if (count == 4)
+        return true;
+
+    // check for IPv6 format
+    wxStringTokenizer tkip6(host, wxT(":"));
+    count = 0;
+    
+    while (tkip6.HasMoreTokens())
+    {
+        unsigned long val = 0;
+        wxString strVal = tkip6.GetNextToken();
+        if (strVal.Length() > 4 || !strVal.ToULong(&val, 16))
+            return false;
+        count++;
+    }
+    if (count <= 8)
+        return true;
+    
+    // TODO:: We're not supporting mix mode (x:x:x:x:x:x:d.d.d.d)
+    //        i.e. ::ffff:12.34.56.78
+    return false;
+}
+
+
+wxString connInfo::getConnectionString()
+{
+    wxString connStr;
+    
+    // Check if it has valid connection info
+    if (!isValid)
+        return connStr;
+
+    // User
+    connStr = wxT("user=") + user;
+
+    // Port
+    if (port != 0)
+    {
+        wxString portStr;
+        portStr.Printf(wxT("%ld"), port);
+        connStr += wxT(" port=") + portStr;
+    }
+
+    // host or hostaddr
+    if (!host.IsEmpty())
+        if (IsValidIP())
+           connStr += wxT(" hostaddr=") + host;
+        else
+           connStr += wxT(" host=") + host;
+
+    // connection timeout
+    if (connection_timeout != 0)
+    {
+        wxString val;
+        val.Printf(wxT("%ld"), connection_timeout);
+        connStr += wxT(" connection_timeout=") + val;
+    }
+
+    // password
+    if (!password.IsEmpty())
+        connStr += wxT(" password=") + password;
+
+    if (!dbname.IsEmpty())
+        connStr += wxT(" dbname=") + dbname;
+
+    LogMessage(wxString::Format(_("Connection Information:")), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     user         : %s"), user.c_str()), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     port         : %ld"), port), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     host         : %s"), host.c_str()), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     dbname       : %s"), dbname.c_str()), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     password     : %s"), password.c_str()), LOG_DEBUG);
+    LogMessage(wxString::Format(_("     conn timeout : %ld"), connection_timeout), LOG_DEBUG);
+
+    return connStr;
+}
+
+
+connInfo connInfo::getConnectionInfo(wxString connStr)
+{
+    connInfo cnInfo;
+
+    wxRegEx propertyExp;
+
+    // Remove the white-space(s) to match the following format
+    // i.e. prop=value
+    bool res = propertyExp.Compile(wxT("(([ ]*[\t]*)+)="));
+
+    propertyExp.ReplaceAll(&connStr, wxT("="));
+
+    res = propertyExp.Compile(wxT("=(([ ]*[\t]*)+)"));
+    propertyExp.ReplaceAll(&connStr, wxT("="));
+
+    // Seperate all the prop=value patterns
+    wxArrayString tokens = wxStringTokenize(connStr, wxT("\t \n\r"));
+    
+    unsigned int index = 0;
+    while (index < tokens.Count())
+    {
+        wxString prop, value;
+
+        wxArrayString pairs = wxStringTokenize(tokens[index++], wxT("="));
+
+        if (pairs.GetCount()!= 2)
+            return cnInfo;
+
+        prop=pairs[0];
+        value=pairs[1];
+
+        if (prop.CmpNoCase(wxT("user")) == 0)
+            cnInfo.user = value;
+        else if (prop.CmpNoCase(wxT("host")) == 0 || prop.CmpNoCase(wxT("hostAddr")) == 0)
+            cnInfo.host = value;
+        else if (prop.CmpNoCase(wxT("port")) == 0)
+        {
+            if (!value.ToULong(&cnInfo.port))
+                // port must be an unsigned integer
+                return cnInfo;
+        }
+        else if (prop.CmpNoCase(wxT("password")) == 0)
+            cnInfo.password = value;
+        else if (prop.CmpNoCase(wxT("connection_timeout")) == 0)
+        {
+            if (!value.ToULong(&cnInfo.connection_timeout))
+                // connection timeout must be an unsigned interger
+                return cnInfo;
+        }
+        else if (prop.CmpNoCase(wxT("dbname")) == 0)
+            cnInfo.dbname = value;
+        else
+            // Not valid property found
+            return cnInfo;
+    }
+
+    // If user, dbname & host all are blank than we will consider this an invalid connection string
+    if (cnInfo.user.IsEmpty() && cnInfo.dbname.IsEmpty() && cnInfo.host.IsEmpty())
+        cnInfo.isValid = false;
+    else
+        cnInfo.isValid = true;
+
+    return cnInfo;
 }
 

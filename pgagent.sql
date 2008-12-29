@@ -1,7 +1,7 @@
 /*
 // pgAgent - PostgreSQL Tools
 // $Id$
-// Copyright (C) 2002 - 2006 The pgAdmin Development Team
+// Copyright (C) 2002 - 2008 The pgAdmin Development Team
 // This software is released under the Artistic Licence
 //
 // pgagent.sql - pgAgent tables and functions
@@ -67,7 +67,8 @@ jstdesc              text                 NOT NULL DEFAULT '',
 jstenabled           bool                 NOT NULL DEFAULT true,
 jstkind              char                 NOT NULL CHECK (jstkind IN ('b', 's')), -- batch, sql
 jstcode              text                 NOT NULL,
-jstdbname            name                 NOT NULL DEFAULT '' CHECK ((jstdbname != '' AND jstkind = 's') OR (jstdbname = '' AND jstkind = 'b')),
+jstconnstr           text                 NOT NULL DEFAULT '' CHECK ((jstconnstr != '' AND jstkind = 's' ) OR (jstconnstr = '' AND (jstkind = 'b' OR jstdbname != ''))),
+jstdbname            name                 NOT NULL DEFAULT '' CHECK ((jstdbname != '' AND jstkind = 's' ) OR (jstdbname = '' AND (jstkind = 'b' OR jstconnstr != ''))),
 jstonerror           char                 NOT NULL CHECK (jstonerror IN ('f', 's', 'i')) DEFAULT 'f', -- fail, success, ignore
 jscnextrun           timestamptz          NULL
 ) WITHOUT OIDS;
@@ -143,6 +144,13 @@ COMMENT ON TABLE pgagent.pga_jobsteplog IS 'Job step run logs.';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslstatus IS 'Status of job step: r=running, s=successfully finished,  f=failed stopping job, i=ignored failure, d=aborted';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslresult IS 'Return code of job step';
 
+CREATE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
+BEGIN
+    -- RETURNS PGAGENT MAJOR VERSION
+    -- WE WILL CHANGE THE MAJOR VERSION, ONLY IF THERE IS A SCHEMA CHANGE
+    RETURN 3;
+END;
+' LANGUAGE 'plpgsql' VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION pgagent.pga_next_schedule(int4, timestamptz, timestamptz, _bool, _bool, _bool, _bool, _bool) RETURNS timestamptz AS '

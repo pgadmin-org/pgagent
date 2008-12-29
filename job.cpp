@@ -78,7 +78,7 @@ int Job::Execute()
 {
     int rc=0;
     DBresult *steps=threadConn->Execute(
-        wxT("SELECT jstid, jstkind, jstdbname, jstcode, jstonerror ")
+        wxT("SELECT * ")
         wxT("  FROM pgagent.pga_jobstep ")
         wxT(" WHERE jstenabled ")
         wxT("   AND jstjobid=") + jobid +
@@ -127,7 +127,10 @@ int Job::Execute()
         {
             case 's':
             {
-                stepConn=DBconn::Get(steps->GetString(wxT("jstdbname")));
+                wxString jstdbname = steps->GetString(wxT("jstdbname"));
+                wxString jstconnstr = steps->GetString(wxT("jstconnstr"));
+                
+                stepConn=DBconn::Get(jstconnstr, jstdbname);
                 if (stepConn)
                 {
                     LogMessage(wxString::Format(_("Executing SQL step %s (part of job %s)"), stepid.c_str(), jobid.c_str()), LOG_DEBUG);
@@ -344,7 +347,7 @@ JobThread::JobThread(const wxString &jid)
     runnable = false;
     jobid = jid;
 
-    DBconn *threadConn=DBconn::Get(serviceDBname);
+    DBconn *threadConn=DBconn::Get(DBconn::GetBasicConnectString(), serviceDBname);
     job = new Job(threadConn, jobid);
 
     if (job->Runnable())

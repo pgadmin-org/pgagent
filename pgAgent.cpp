@@ -146,6 +146,49 @@ void MainLoop()
                     LogMessage(_("Could not find the table 'pgagent.pga_job'. Have you run pgagent.sql on this database?"), LOG_ERROR);
 
                 backendPid=res->GetString(wxT("pid"));
+ 
+                delete res;
+                res = NULL;
+            }
+
+            // Check for particular version
+
+            bool hasSchemaVerFunc = false;
+            wxString sqlCheckSchemaVersion
+                = wxT("SELECT COUNT(*)                                            ")\
+                  wxT("FROM pg_proc                                               ")\
+                  wxT("WHERE proname = 'pgagent_schema_version' AND               ")\
+                  wxT("      pronamespace = (SELECT oid                           ")\
+                  wxT("                      FROM pg_namespace                    ")\
+                  wxT("                      WHERE nspname = 'pgagent') AND       ")\
+                  wxT("      prorettype = (SELECT oid                             ")\
+                  wxT("                    FROM pg_type                           ")\
+                  wxT("                    WHERE typname = 'int2') AND            ")\
+                  wxT("      proargtypes = ''                                     ");
+
+            res = serviceConn->Execute(sqlCheckSchemaVersion);
+
+            if (res)
+            {
+                if (res->IsValid() && res->GetString(0) == wxT("1"))
+                    hasSchemaVerFunc = true;
+                delete res;
+                res = NULL;
+            }
+  
+            if (!hasSchemaVerFunc) 
+            {
+                LogMessage(_("Couldn't find the function 'pgagent_schema_version' - please run pgagent_upgrade.sql."), LOG_ERROR);
+            }
+
+            wxString strPgAgentSchemaVer= serviceConn->ExecuteScalar(wxT("SELECT pgagent.pgagent_schema_version()"));
+            wxString currentPgAgentVersion;
+            currentPgAgentVersion.Printf(_("%d"), PGAGENT_VERSION_MAJOR);
+            if (strPgAgentSchemaVer != currentPgAgentVersion)
+            {
+                wxString strSchemaVerMisMatch;
+                strSchemaVerMisMatch.Printf(_("Unsupported schema version: %d. Version %d is required - please run pgagent_upgrade.sql."), strPgAgentSchemaVer.c_str(), currentPgAgentVersion.c_str());
+                LogMessage(strSchemaVerMisMatch, LOG_ERROR);
             }
 
             MainRestartLoop(serviceConn);
@@ -157,3 +200,4 @@ void MainLoop()
     }
     while (1);
 }
+

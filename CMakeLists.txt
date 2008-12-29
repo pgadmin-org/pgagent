@@ -52,12 +52,16 @@ ENDIF(APPLE)
 ################################################################################
 PROJECT(pgagent)
 
-SET(VERSION 2.0.1)
+# If changing the version number, remember to change here and under the CPack 
+# settings in this file, as well as the definition for pgagent_schema_version()
+# in pgagent.sql and upgrade_pgagent.sql if the major version number is 
+# changed.
+SET(VERSION 3.0.0)
 
 # CPack stuff
-SET(CPACK_PACKAGE_VERSION_MAJOR 2)
+SET(CPACK_PACKAGE_VERSION_MAJOR 3)
 SET(CPACK_PACKAGE_VERSION_MINOR 0)
-SET(CPACK_PACKAGE_VERSION_PATCH 1)
+SET(CPACK_PACKAGE_VERSION_PATCH 0)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
 SET(CPACK_PACKAGE_VENDOR "the pgAdmin Development Team")
@@ -68,6 +72,8 @@ ELSE(WIN32)
 ENDIF(WIN32)
 SET(CPACK_SOURCE_GENERATOR TGZ)
 SET(CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store;/CVS/;/\\\\.svn/;\\\\.swp$;\\\\.#;/#;.*~;cscope.*")
+
+ADD_DEFINITIONS(-DPGAGENT_VERSION_MAJOR=${CPACK_PACKAGE_VERSION_MAJOR})
 
 # This must come after we set the CPACK variables!!
 INCLUDE(CPack)
@@ -120,9 +126,11 @@ TARGET_LINK_LIBRARIES(pgagent ${PG_LIBRARIES} ${WX_LIBRARIES})
 IF (WIN32)
     INSTALL(TARGETS pgagent DESTINATION .)
     INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION .)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent_upgrade.sql DESTINATION .)
 ELSE(WIN32)
     INSTALL(TARGETS pgagent DESTINATION bin)
     INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent_upgrade.sql DESTINATION share)
 ENDIF(WIN32)
 
 INSTALL(FILES ${pgagent_SOURCE_DIR}/README DESTINATION .)

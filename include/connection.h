@@ -21,8 +21,7 @@ class DBresult;
 class DBconn
 {
 protected:
-    DBconn(const wxString &db);
-    DBconn(const wxString &connectString, const wxString &db);
+    DBconn(const wxString &, const wxString&);
     ~DBconn();
 
 public:
@@ -30,11 +29,12 @@ public:
 
     bool BackendMinimumVersion(int major, int minor);
 
-    static DBconn *Get(const wxString &db);
+    static DBconn *Get(const wxString &connStr, const wxString &db);
     static DBconn *InitConnection(const wxString &connectString);
 
     static void ClearConnections(bool allIncludingPrimary=false);
     static void SetBasicConnectString(const wxString &bcs) { basicConnectString = bcs; }
+    static const wxString& GetBasicConnectString() { return basicConnectString; }
 
     wxString GetLastError();
     wxString GetDBname() { return dbname; }
@@ -43,7 +43,7 @@ public:
     DBresult *Execute(const wxString &query);
     wxString ExecuteScalar(const wxString &query);
     int ExecuteVoid(const wxString &query);
-	void Return();
+    void Return();
 
 private:
     bool Connect(const wxString &connectString);
@@ -54,9 +54,9 @@ protected:
     static wxString basicConnectString;
 	static DBconn *primaryConn;
 
-    wxString dbname, lastError;
+    wxString dbname, lastError, connStr;
     PGconn *conn;
-	DBconn *next, *prev;
+    DBconn *next, *prev;
     bool inUse;
 
     friend class DBresult;
@@ -85,6 +85,29 @@ protected:
     PGresult *result;
     int currentRow, maxRows;
 
+    friend class DBconn;
+};
+
+
+class connInfo
+{
+public:
+    connInfo() { isValid = false; connection_timeout = 0; port = 0; }
+
+private:
+    wxString      user;
+    unsigned long port;
+    wxString      host;
+    wxString      dbname;
+    unsigned long connection_timeout;
+    wxString      password;
+    bool          isValid;
+
+    wxString getConnectionString();
+    static connInfo getConnectionInfo(wxString connStr);
+
+protected:
+    bool IsValidIP();
     friend class DBconn;
 };
 

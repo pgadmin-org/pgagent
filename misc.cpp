@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "pgAgent.h"
+#include "connection.h"
 
 #ifndef __WXMSW__
 #include <unistd.h>
@@ -130,5 +131,4 @@ wxString NumToStr(const long l)
     buf.Printf(wxT("%ld"), l);
     return buf;
 }
-
 
