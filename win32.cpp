@@ -406,6 +406,7 @@ void usage(const wxString &executable)
     wxPrintf(_("Usage:\n"));
     wxPrintf(fn->GetName() + _(" REMOVE <serviceName>\n"));
     wxPrintf(fn->GetName() + _(" INSTALL <serviceName> [options] <connect-string>\n"));
+    wxPrintf(fn->GetName() + _(" DEBUG [options] <connect-string>\n"));
     wxPrintf(_("options:\n"));
     wxPrintf(_("-u <user or DOMAIN\\user>\n"));
     wxPrintf(_("-p <password>\n"));
@@ -450,9 +451,13 @@ void main(int argc, char **argv)
     wxString command;
     command = wxString::FromAscii(*argv++);
 
-    serviceName = wxString::FromAscii(*argv++);
-
-    argc -= 3;
+	if (command != wxT("DEBUG"))
+	{
+		serviceName = wxString::FromAscii(*argv++);
+		argc -= 3;
+	}
+	else
+		argc -= 2;
 
     if (command == wxT("INSTALL"))
     {
