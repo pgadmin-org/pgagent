@@ -2,7 +2,7 @@
 //
 // pgAgent - PostgreSQL Tools
 // $Id: pgamsgevent.rc 6929 2008-01-01 23:54:26Z dpage $
-// Copyright (C) 2002 - 2008, The pgAdmin Development Team
+// Copyright (C) 2002 - 2009, The pgAdmin Development Team
 // This software is released under the Artistic Licence
 //
 // pgaevent.rc - win32 Resources
@@ -31,7 +31,7 @@ BEGIN
             VALUE "FileVersion",     "2.0.0", "\0"
             VALUE "File Version",    "2.0.0", "\0"
             VALUE "FileDescription", "pgaevent - pgAgent Event Log Message DLL", "\0"
-            VALUE "LegalCopyright",  "\251 2002 - 2008, The pgAdmin Development Team", "\0"
+            VALUE "LegalCopyright",  "\251 2002 - 2009, The pgAdmin Development Team", "\0"
             VALUE "LegalTrademarks", "This software is released under the Artistic License.", "\0"
             VALUE "InternalName",    "pgaevent", "\0"
             VALUE "OriginalFilename","pgaevent.dll", "\0"
