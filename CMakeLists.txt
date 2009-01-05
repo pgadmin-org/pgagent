@@ -54,8 +54,9 @@ PROJECT(pgagent)
 
 # If changing the version number, remember to change here and under the CPack 
 # settings in this file, as well as the definition for pgagent_schema_version()
-# in pgagent.sql and upgrade_pgagent.sql if the major version number is 
-# changed.
+# in pgagent.sql and upgrade_pgagent.sql if the major version number is
+# changed. The full version number also needs to be included in pgAgent.rc and
+# pgaevent/pgamsgevent.rc at present.
 SET(VERSION 3.0.0)
 
 # CPack stuff
