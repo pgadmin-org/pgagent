@@ -31,9 +31,17 @@ static HANDLE threadHandle=0;
 
 
 static bool serviceIsRunning;
+static bool pgagentInitialized;
 static HANDLE serviceSync;
 static HANDLE eventHandle;
 
+bool stopService();
+
+// This will be called from MainLoop, if pgagent is initialized properly
+void Initialized()
+{
+    pgagentInitialized = true;
+}
 
 // This will be called periodically to check if the service is to be paused.
 void CheckForInterrupt()
@@ -64,13 +72,30 @@ void LogMessage(wxString msg, int level)
                 if (minLogLevel >= LOG_DEBUG)
                     ReportEvent(eventHandle, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
                 break;
+
             case LOG_WARNING:
                 if (minLogLevel >= LOG_WARNING)
                     ReportEvent(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
                 break;
+
             case LOG_ERROR:
                 ReportEvent(eventHandle, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
-                exit(1);
+                stopService();
+
+                // Set pgagent initialized to true, as initService
+                // is waiting for it to be intialized
+                pgagentInitialized = true;
+
+                // Change service status
+                serviceStatus.dwCheckPoint=0;
+                serviceStatus.dwCurrentState=SERVICE_STOPPED;
+                SetServiceStatus(serviceStatusHandle, &serviceStatus);
+
+                break;
+
+            // Log startup/connection warnings (valid for any log level)
+            case LOG_STARTUP:
+                ReportEvent(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
                 break;
         }
     }
@@ -88,7 +113,12 @@ void LogMessage(wxString msg, int level)
                 break;
             case LOG_ERROR:
                 wxPrintf(_("ERROR: %s\n"), msg);
+                pgagentInitialized = true;
                 exit(1);
+                break;
+            // Log startup/connection warnings (valid for any log level)
+            case LOG_STARTUP:
+                wxPrintf(_("WARNING: %s\n"), msg);
                 break;
         }
     }
@@ -99,7 +129,6 @@ void LogMessage(wxString msg, int level)
 unsigned int __stdcall threadProcedure(void *unused)
 {
     MainLoop();
-
     return 0;
 }
 
@@ -188,6 +217,7 @@ bool continueService()
 {
     ReleaseSemaphore(serviceSync, 1, 0);
     ResumeThread(threadHandle);
+
     return true;
 }
 
@@ -195,6 +225,7 @@ bool stopService()
 {
     pauseService();
     CloseHandle (threadHandle);
+    threadHandle = 0;
     return true;
 }
 
@@ -203,11 +234,20 @@ bool initService()
     serviceSync = CreateSemaphore(0, 1, 1, 0);
 
     unsigned int tid;
-#if START_SUSPENDED
-    threadHandle = (HANDLE)_beginthreadex(0, 0, threadProcedure, 0, CREATE_SUSPENDED, &tid);
-#else
+    pgagentInitialized = false;
+
     threadHandle = (HANDLE)_beginthreadex(0, 0, threadProcedure, 0, 0, &tid);
-#endif
+    while (!pgagentInitialized)
+    {
+        if (eventHandle)
+        {
+            serviceStatus.dwWaitHint += shortWait * 1000 ;
+            serviceStatus.dwCheckPoint++;
+            SetServiceStatus(serviceStatusHandle, (LPSERVICE_STATUS) &serviceStatus);
+        }
+        WaitAWhile();
+    }
+
     return (threadHandle != 0);
 }
 
@@ -268,11 +308,7 @@ void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
         SetServiceStatus(serviceStatusHandle, &serviceStatus);
         if (initService())
         {
-#if START_SUSPENDED
-            serviceStatus.dwCurrentState = SERVICE_PAUSED;
-#else
             serviceStatus.dwCurrentState = SERVICE_RUNNING;
-#endif
             serviceStatus.dwWaitHint = shortWait*1000;
         }
         else

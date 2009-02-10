@@ -19,12 +19,17 @@ wxString connectString;
 wxString serviceDBname;
 wxString backendPid;
 long longWait=30;
-long shortWait=10;
+long shortWait=5;
 long minLogLevel=LOG_ERROR;
+
+#define MAXATTEMPTS 10
 
 #ifndef __WXMSW__
 bool runInForeground = false;
 wxString logFile = wxEmptyString;
+#else
+//pgAgent Initialized
+void Initialized();
 #endif
 
 int MainRestartLoop(DBconn *serviceConn)
@@ -125,6 +130,8 @@ int MainRestartLoop(DBconn *serviceConn)
 
 void MainLoop()
 {
+    int attemptCount = 1;
+
     // OK, let's get down to business
     do
     {
@@ -191,12 +198,21 @@ void MainLoop()
                 LogMessage(strSchemaVerMisMatch, LOG_ERROR);
             }
 
+#ifdef WIN32
+			Initialized();
+#endif
             MainRestartLoop(serviceConn);
         }
 
-        LogMessage(wxString::Format(_("Couldn't create connection: %s"), serviceConn->GetLastError().c_str()), LOG_WARNING);
+        LogMessage(wxString::Format(_("Couldn't create the primary connection (attempt %d): %s"), attemptCount, serviceConn->GetLastError().c_str()), LOG_STARTUP);
         DBconn::ClearConnections(true);
-        WaitAWhile(true);
+
+        // Try establishing primary connection upto MAXATTEMPTS times
+        if (attemptCount++ >= (int)MAXATTEMPTS)
+        {
+            LogMessage(wxString::Format(_("Stopping pgAgent: Couldn't establish the primary connection with the database server.")), LOG_ERROR);
+        }
+        WaitAWhile();
     }
     while (1);
 }

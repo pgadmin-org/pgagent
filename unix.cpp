@@ -64,6 +64,9 @@ void LogMessage(wxString msg, int level)
         file.Write(_("ERROR: ") + msg + wxT("\n"));
         exit(1);
         break;
+    case LOG_STARTUP:
+        file.Write(_("WARNING: ") + msg + wxT("\n"));
+        break;
     }
 
     if (logFile.IsEmpty())

@@ -169,16 +169,16 @@ DBconn *DBconn::Get(const wxString &connStr, const wxString &db)
         newConn->prev = lastConn;
         lastConn->next = newConn;
     }
-    else if (connStr.IsEmpty())
-    {
-        LogMessage(wxString::Format(_("Failed to create new connection to database %s"), db.c_str()), LOG_WARNING);
-        LogMessage(wxString::Format(_("\tError message from connection : (%s)"), newConn->GetLastError().c_str()), LOG_WARNING);
-        return NULL;
-    }
     else
     {
-        LogMessage(wxString::Format(_("Failed to create new connection for connection string: %s"), connStr.c_str()), LOG_WARNING);
-        LogMessage(wxString::Format(_("\tError message from connection : (%s)"), newConn->GetLastError().c_str()), LOG_WARNING);
+        wxString warnMsg;
+        if (connStr.IsEmpty())
+            warnMsg = wxString::Format(_("Failed to create new connection to database '%s':'%s'"),
+                                       db.c_str(), newConn->GetLastError().c_str());
+        else
+            warnMsg = wxString::Format(_("Failed to create new connection for connection string '%s':%s"),
+                                       connStr.c_str(), newConn->GetLastError().c_str());
+        LogMessage(warnMsg, LOG_STARTUP);
         return NULL;
     }
 
