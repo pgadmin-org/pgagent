@@ -16,8 +16,10 @@ You will need:
 
 - A C/C++ compiler, such as GCC or Microsoft Visual C++ on Windows.
 - CMake 2.6 (from www.cmake.org)
-- A wxWidgets 2.8.x installation
-- A PostgreSQL 8.3 installation
+- A wxWidgets 2.8.x installation, configured per the requirements for
+  pgAdmin:
+  http://svn.pgadmin.org/cgi-bin/viewcvs.cgi/*checkout*/trunk/pgadmin3/INSTALL
+- A PostgreSQL 8.3 or higher installation
 
 1) Unpack the pgAgent source code
 2) Create a build directory in which the code will be built.
