@@ -1,0 +1,45 @@
+//////////////////////////////////////////////////////////////////////////
+//
+// pgAgent - PostgreSQL Tools
+// $Id$
+// Copyright (C) 2002 - 2009, The pgAdmin Development Team
+// This software is released under the Artistic Licence
+//
+// pgAgent.rc - win32 Resources
+//
+//////////////////////////////////////////////////////////////////////////
+
+#include <winver.h>
+
+// Icon (Don't remove the aaa prefix - it makes it the default icon)
+aaaPGAGENT      ICON    DISCARDABLE     "include/pgAgent.ico"
+
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    3,0,0,0
+PRODUCTVERSION 3,0,0,0
+FILEOS         VOS__WINDOWS32
+FILETYPE       VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "FileVersion",     "3.0.0", "\0"
+            VALUE "File Version",    "3.0.0", "\0"
+            VALUE "FileDescription", "pgAgent - PostgreSQL Scheduling Agent", "\0"
+            VALUE "LegalCopyright",  "\251 2002 - 2009, The pgAdmin Development Team", "\0"
+            VALUE "LegalTrademarks", "This software is released under the Artistic License.", "\0"
+            VALUE "InternalName",    "pgAgent", "\0"
+            VALUE "OriginalFilename","pgagent.exe", "\0"
+            VALUE "ProductName",     "pgAgent", "\0"
+            VALUE "ProductVersion",  "3.0.0", "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04E4
+    END
+END
+
+

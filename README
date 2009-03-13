@@ -1,0 +1,51 @@
+pgAgent
+=======
+
+This document describes the compilation of pgAgent, a job scheduler for 
+PostgreSQL.
+
+pgAgent is managed using pgAdmin (http://www.pgadmin.org). The pgAdmin 
+documentation contains details of the setup and use of pgAgent with your
+PostgreSQL system. The latest build of the documentation can be found at
+http://www.pgadmin.org/docs/dev/pgagent.html.
+
+Building pgAgent
+----------------
+
+You will need:
+
+- A C/C++ compiler, such as GCC or Microsoft Visual C++ on Windows.
+- CMake 2.6 (from www.cmake.org)
+- A wxWidgets 2.8.x installation, configured per the requirements for
+  pgAdmin:
+  http://svn.pgadmin.org/cgi-bin/viewcvs.cgi/*checkout*/trunk/pgadmin3/INSTALL
+- A PostgreSQL 8.3 or higher installation
+
+1) Unpack the pgAgent source code
+2) Create a build directory in which the code will be built.
+3) Run ccmake from the build directory (on Windows, use the CMake graphical
+   interface). By default, ccmake will generate Unix Makefiles - consult the 
+   documentation if you wish to generate other types of output:
+
+$ ccmake /path/to/pgagent
+
+4) If required, press 'c' to generate a default configuration:
+
+CMAKE_BUILD_TYPE                 Release
+CMAKE_INSTALL_PREFIX             /usr/local
+CMAKE_OSX_ARCHITECTURES          ppc;i386
+CMAKE_OSX_SYSROOT                /Developer/SDKs/MacOSX10.5.sdk
+PostgreSQL_CONFIG_EXECUTABLE     /usr/local/pgsql/bin/pg_config
+wxWidgets_CONFIG_EXECUTABLE      /usr/local/bin/wx-config
+wxWidgets_USE_DEBUG              OFF
+wxWidgets_USE_STATIC             ON
+wxWidgets_USE_UNICODE            ON
+wxWidgets_wxrc_EXECUTABLE        /usr/bin/wxrc
+
+5) Use the ccmake interface to adjust any settings as required. When configured
+   as required, press 'c' to re-configure (if required) and 'g' to generate the 
+   build files and exit.
+   
+6) Run 'make' to build pgAgent on Mac or Unix, or open the generated project
+   files in VC++ on Windows and build the solution in the desired configuration.
+
