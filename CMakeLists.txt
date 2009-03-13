@@ -57,11 +57,11 @@ PROJECT(pgagent)
 # in pgagent.sql and upgrade_pgagent.sql if the major version number is
 # changed. The full version number also needs to be included in pgAgent.rc and
 # pgaevent/pgamsgevent.rc at present.
-SET(VERSION 3.0.0)
+SET(VERSION 3.1.0)
 
 # CPack stuff
 SET(CPACK_PACKAGE_VERSION_MAJOR 3)
-SET(CPACK_PACKAGE_VERSION_MINOR 0)
+SET(CPACK_PACKAGE_VERSION_MINOR 1)
 SET(CPACK_PACKAGE_VERSION_PATCH 0)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
