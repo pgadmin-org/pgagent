@@ -1,8 +1,8 @@
 /*
 // pgAgent - PostgreSQL Tools
 // $Id$
-// Copyright (C) 2002 - 2008 The pgAdmin Development Team
-// This software is released under the Artistic Licence
+// Copyright (C) 2002 - 2009 The pgAdmin Development Team
+// This software is released under the BSD Licence
 //
 // pgagent.sql - pgAgent tables and functions
 //

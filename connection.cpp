@@ -2,8 +2,8 @@
 //
 // pgAgent - PostgreSQL Tools
 // $Id: connection.cpp 4875 2006-01-06 21:06:46Z dpage $
-// Copyright (C) 2002 - 2008, The pgAdmin Development Team
-// This software is released under the Artistic Licence
+// Copyright (C) 2002 - 2009, The pgAdmin Development Team
+// This software is released under the BSD Licence
 //
 // connection.cpp - database connection
 //
