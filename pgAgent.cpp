@@ -194,7 +194,7 @@ void MainLoop()
             if (strPgAgentSchemaVer != currentPgAgentVersion)
             {
                 wxString strSchemaVerMisMatch;
-                strSchemaVerMisMatch.Printf(_("Unsupported schema version: %d. Version %d is required - please run pgagent_upgrade.sql."), strPgAgentSchemaVer.c_str(), currentPgAgentVersion.c_str());
+                strSchemaVerMisMatch.Printf(_("Unsupported schema version: %s. Version %s is required - please run pgagent_upgrade.sql."), strPgAgentSchemaVer.c_str(), currentPgAgentVersion.c_str());
                 LogMessage(strSchemaVerMisMatch, LOG_ERROR);
             }
 
