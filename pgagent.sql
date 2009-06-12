@@ -144,7 +144,7 @@ COMMENT ON TABLE pgagent.pga_jobsteplog IS 'Job step run logs.';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslstatus IS 'Status of job step: r=running, s=successfully finished,  f=failed stopping job, i=ignored failure, d=aborted';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslresult IS 'Return code of job step';
 
-CREATE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
+CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
 BEGIN
     -- RETURNS PGAGENT MAJOR VERSION
     -- WE WILL CHANGE THE MAJOR VERSION, ONLY IF THERE IS A SCHEMA CHANGE
