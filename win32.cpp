@@ -241,11 +241,11 @@ bool initService()
     {
         if (eventHandle)
         {
-            serviceStatus.dwWaitHint += shortWait * 1000 ;
+            serviceStatus.dwWaitHint += 1000 ;
             serviceStatus.dwCheckPoint++;
             SetServiceStatus(serviceStatusHandle, (LPSERVICE_STATUS) &serviceStatus);
         }
-        WaitAWhile();
+        Sleep(1000);
     }
 
     return (threadHandle != 0);
@@ -309,7 +309,7 @@ void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
         if (initService())
         {
             serviceStatus.dwCurrentState = SERVICE_RUNNING;
-            serviceStatus.dwWaitHint = shortWait*1000;
+            serviceStatus.dwWaitHint = 1000;
         }
         else
             serviceStatus.dwCurrentState = SERVICE_STOPPED;
