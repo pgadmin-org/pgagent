@@ -2,8 +2,8 @@
 //
 // pgAgent - PostgreSQL Tools
 // $Id: misc.cpp 5013 2006-02-21 09:39:15Z dpage $
-// Copyright (C) 2002 - 2009 The pgAdmin Development Team
-// This software is released under the BSD Licence
+// Copyright (C) 2002 - 2010 The pgAdmin Development Team
+// This software is released under the PostgreSQL Licence
 //
 // misc.cpp - misc functions
 //
