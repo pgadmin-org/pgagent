@@ -559,7 +559,7 @@ BEGIN
     RETURN $1 % 400 = 0;
 END;
 ' LANGUAGE 'plpgsql' IMMUTABLE;
-COMMENT ON FUNCTION pgagent.pga_is_leap_year(int2) IS 'Returns TRUE is $1 is a leap year';
+COMMENT ON FUNCTION pgagent.pga_is_leap_year(int2) IS 'Returns TRUE if $1 is a leap year';
 
 
 CREATE OR REPLACE FUNCTION pgagent.pga_job_trigger()
