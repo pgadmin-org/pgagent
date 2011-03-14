@@ -284,8 +284,11 @@ int Job::Execute()
                 }
 
                 rc=pclose(fp_script);
-		rc = (unsigned char)(rc >> 8); // The exit code is in the top 8 bits
-		rc = (signed char)rc;
+
+		if (WIFEXITED(rc))
+			rc = WEXITSTATUS(rc);
+		else
+			rc = -1;
 #endif
 
                 // Delete the file/directory. If we fail, don't overwrite the script output in the log, just throw warnings.
@@ -313,7 +316,7 @@ int Job::Execute()
         }
 
         wxString stepstatus;
-        if (rc >= 0)
+        if (rc == 0)
             stepstatus = wxT("s");
         else
             stepstatus = steps->GetString(wxT("jstonerror"));
