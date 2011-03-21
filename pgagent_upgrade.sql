@@ -1,7 +1,7 @@
 /*
 // pgAgent - PostgreSQL Tools
-// $Id$
-// Copyright (C) 2002 - 2010 The pgAdmin Development Team
+// 
+// Copyright (C) 2002 - 2011 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // pgagent_upgrade.sql - Upgrade pgAgent tables and functions
