@@ -19,25 +19,31 @@
 class Job
 {
 public:
-    Job(DBconn *conn, const wxString &jid);
-    ~Job();
+	Job(DBconn *conn, const wxString &jid);
+	~Job();
 
-    int Execute();
-    bool Runnable() { return status == wxT("r"); }
+	int Execute();
+	bool Runnable()
+	{
+		return status == wxT("r");
+	}
 
 protected:
-    DBconn *threadConn;
-    wxString jobid, logid;
-    wxString status;
+	DBconn *threadConn;
+	wxString jobid, logid;
+	wxString status;
 };
 
 
 class JobThread : public wxThread
 {
 public:
-    JobThread(const wxString &jid);
-    ~JobThread();
-	bool Runnable() { return runnable; }
+	JobThread(const wxString &jid);
+	~JobThread();
+	bool Runnable()
+	{
+		return runnable;
+	}
 
 	virtual void *Entry();
 

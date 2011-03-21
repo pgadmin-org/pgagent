@@ -43,7 +43,7 @@ enum
 	// NOTE:
 	//     "STARTUP" will be used to log messages for any LogLevel
 	//     Use it for logging database connection errors which we
-    //     don't want to abort the whole shebang.
+	//     don't want to abort the whole shebang.
 	LOG_STARTUP = 15
 };
 
