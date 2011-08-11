@@ -16,6 +16,9 @@
 #include <wx/filename.h>
 #include <wx/process.h>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #ifndef __WIN32__
 #include <errno.h>
 #endif
