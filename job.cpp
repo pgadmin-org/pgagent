@@ -354,11 +354,13 @@ JobThread::JobThread(const wxString &jid)
 	jobid = jid;
 
 	DBconn *threadConn = DBconn::Get(DBconn::GetBasicConnectString(), serviceDBname);
-	job = new Job(threadConn, jobid);
+	if (threadConn)
+	{
+		job = new Job(threadConn, jobid);
 
-	if (job->Runnable())
-		runnable = true;
-
+		if (job->Runnable())
+			runnable = true;
+	}
 }
 
 

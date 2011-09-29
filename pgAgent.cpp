@@ -109,8 +109,23 @@ int MainRestartLoop(DBconn *serviceConn)
 					jt->Run();
 					foundJobToExecute = true;
 				}
-				res->MoveNext();
+				else
+				{
+					// Failed to launch the thread. Insert an entry with
+					// "internal error" status in the joblog table, to leave
+					// a trace of fact that we tried to launch the job.
+					DBresult *res = serviceConn->Execute(
+						wxT("INSERT INTO pgagent.pga_joblog(jlgid, jlgjobid, jlgstatus) ")
+						wxT("VALUES (nextval('pgagent.pga_joblog_jlgid_seq'), ") + jobid + wxT(", 'i')"));
+					if (res)
+						delete res;
 
+					// A thread object that's started will destroy itself when
+					// it's finished, but one that never starts we'll have to
+					// destory ourselves.
+					delete jt;
+				}
+				res->MoveNext();
 			}
 
 			delete res;
