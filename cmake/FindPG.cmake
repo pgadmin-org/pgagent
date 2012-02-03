@@ -91,6 +91,10 @@ IF(NOT _retval)
                 LIST(APPEND PG_LIBRARIES "krb5")
             ENDIF(_op MATCHES "krb5_free_principal")
 
+            IF(_op MATCHES "ldap_init")
+                LIST(APPEND PG_LIBRARIES "ldap")
+            ENDIF(_op MATCHES "ldap_init")
+
             LIST(APPEND PG_LIBRARIES "crypto")
 
             IF(NOT APPLE)
