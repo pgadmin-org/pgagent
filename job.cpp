@@ -17,10 +17,10 @@
 #include <wx/process.h>
 
 #include <sys/types.h>
-#include <sys/wait.h>
 
 #ifndef __WIN32__
 #include <errno.h>
+#include <sys/wait.h>
 #endif
 
 Job::Job(DBconn *conn, const wxString &jid)
