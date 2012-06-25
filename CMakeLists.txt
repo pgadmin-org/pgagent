@@ -11,7 +11,11 @@
 ################################################################################
 # Initial setup
 ################################################################################
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+IF(APPLE)
+    CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+ELSE()
+    CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+ENDIF(APPLE)
 
 IF(COMMAND cmake_policy)
     CMAKE_POLICY(SET CMP0003 NEW)
@@ -30,24 +34,21 @@ SET(STATIC_BUILD YES CACHE BOOL "Statically link the executable?")
 IF(APPLE)
     # Setup default values
     IF(NOT HAVE_CACHED_VALUES)
-        IF(EXISTS /Developer/SDKs/MacOSX10.7.sdk)
-            SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "Build architectures for OSX" FORCE)
-            SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.7.sdk" CACHE FILEPATH "isysroot used for universal binary support" FORCE)
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.5")
-        ELSEIF(EXISTS /Developer/SDKs/MacOSX10.5.sdk)
-            SET(CMAKE_OSX_ARCHITECTURES "ppc;i386" CACHE STRING "Build architectures for OSX" FORCE)
-            SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.5.sdk" CACHE FILEPATH "isysroot used for universal binary support" FORCE)
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.4")
+
+        IF(EXISTS ${CMAKE_OSX_SYSROOT})
+            SET(CMAKE_OSX_SYSROOT ${CMAKE_OSX_SYSROOT} CACHE FILEPATH "isysroot used for universal binary support" FORCE)
+        ENDIF(EXISTS ${CMAKE_OSX_SYSROOT})
+    
+        IF(NOT ${CMAKE_OSX_ARCHITECTURES} STREQUAL "")
+            SET(CMAKE_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES} CACHE STRING "Build architectures for OSX" FORCE)
         ELSE()
-            IF(EXISTS /Developer/SDKs/MacOSX10.4u.sdk)
-                SET(CMAKE_OSX_ARCHITECTURES "ppc;i386" CACHE STRING "Build architectures for OSX" FORCE)
-                SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.4u.sdk" CACHE FILEPATH "isysroot used for universal binary support" FORCE)
-                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.4")
-            ELSE()
-                MESSAGE(FATAL_ERROR "No supported SDK could be found!")
-            ENDIF(EXISTS /Developer/SDKs/MacOSX10.4u.sdk)
-        ENDIF()
+            SET(CMAKE_OSX_ARCHITECTURES "ppc;i386" CACHE STRING "Build architectures for OSX" FORCE)
+        ENDIF(NOT ${CMAKE_OSX_ARCHITECTURES} STREQUAL "")
+    
     ENDIF(NOT HAVE_CACHED_VALUES)
+ 
+   # Target Tiger
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.4")
 ENDIF(APPLE)
 
 ################################################################################
