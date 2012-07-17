@@ -336,6 +336,7 @@ DBresult::DBresult(DBconn *conn, const wxString &query)
 	if (result)
 	{
 		int rc = PQresultStatus(result);
+		conn->SetLastResult(rc);
 		if (rc == PGRES_TUPLES_OK)
 			maxRows = PQntuples(result);
 		else if (rc != PGRES_COMMAND_OK)

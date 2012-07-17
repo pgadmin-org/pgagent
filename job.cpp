@@ -80,6 +80,7 @@ Job::~Job()
 int Job::Execute()
 {
 	int rc = 0;
+	bool succeeded = false;
 	DBresult *steps = threadConn->Execute(
 	                      wxT("SELECT * ")
 	                      wxT("  FROM pgagent.pga_jobstep ")
@@ -138,13 +139,14 @@ int Job::Execute()
 				{
 					LogMessage(wxString::Format(_("Executing SQL step %s (part of job %s)"), stepid.c_str(), jobid.c_str()), LOG_DEBUG);
 					rc = stepConn->ExecuteVoid(steps->GetString(wxT("jstcode")));
+					succeeded = stepConn->LastCommandOk();
 					output = stepConn->GetLastError();
 					stepConn->Return();
 				}
 				else
 				{
 					output = _("Couldn't get a connection to the database!");
-					rc = -1;
+					succeeded = false;
 				}
 
 
@@ -292,6 +294,10 @@ int Job::Execute()
 					rc = WEXITSTATUS(rc);
 				else
 					rc = -1;
+
+				// set success status for batch runs, be pessimistic bt default
+				if (rc == 0)
+					succeeded = true;
 #endif
 
 				// Delete the file/directory. If we fail, don't overwrite the script output in the log, just throw warnings.
@@ -319,7 +325,7 @@ int Job::Execute()
 		}
 
 		wxString stepstatus;
-		if (rc == 0)
+		if (succeeded)
 			stepstatus = wxT("s");
 		else
 			stepstatus = steps->GetString(wxT("jstonerror"));

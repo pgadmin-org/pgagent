@@ -47,11 +47,42 @@ public:
 	{
 		return dbname;
 	}
+
 	bool IsValid()
 	{
 		return conn != 0;
 	}
 
+        bool LastCommandOk()
+        {
+                return IsCommandOk((ExecStatusType)lastResult);
+        }
+
+        bool IsCommandOk(ExecStatusType ret)
+        {
+                switch (ret)
+                {
+                        case PGRES_COMMAND_OK:
+                        case PGRES_TUPLES_OK:
+                        case PGRES_COPY_OUT:
+                        case PGRES_COPY_IN:
+                        case PGRES_COPY_BOTH:
+                                return true;
+                        default:
+                                return false;
+                };
+        }
+
+        void SetLastResult(int res)
+        {
+                lastResult = res;
+        }
+
+        int GetLastResult()
+        {
+                return lastResult;
+        }
+	
 	DBresult *Execute(const wxString &query);
 	wxString ExecuteScalar(const wxString &query);
 	int ExecuteVoid(const wxString &query);
@@ -70,7 +101,7 @@ protected:
 	PGconn *conn;
 	DBconn *next, *prev;
 	bool inUse;
-
+	int lastResult;
 	friend class DBresult;
 
 };
