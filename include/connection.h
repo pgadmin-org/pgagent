@@ -66,7 +66,9 @@ public:
                         case PGRES_TUPLES_OK:
                         case PGRES_COPY_OUT:
                         case PGRES_COPY_IN:
+#if (PG_VERSION_NUM >= 90100)
                         case PGRES_COPY_BOTH:
+#endif
                                 return true;
                         default:
                                 return false;

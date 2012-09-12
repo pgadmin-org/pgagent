@@ -41,13 +41,26 @@ int MainRestartLoop(DBconn *serviceConn)
 	LogMessage(_("Clearing zombies"), LOG_DEBUG);
 	rc = serviceConn->ExecuteVoid(wxT("CREATE TEMP TABLE pga_tmp_zombies(jagpid int4)"));
 
-	rc = serviceConn->ExecuteVoid(
-	         wxT("INSERT INTO pga_tmp_zombies (jagpid) ")
-	         wxT("SELECT jagpid ")
-	         wxT("  FROM pgagent.pga_jobagent AG ")
-	         wxT("  LEFT JOIN pg_stat_activity PA ON jagpid=procpid ")
-	         wxT(" WHERE procpid IS NULL")
-	     );
+	if (serviceConn->BackendMinimumVersion(9, 2))
+	{
+		rc = serviceConn->ExecuteVoid(
+		         wxT("INSERT INTO pga_tmp_zombies (jagpid) ")
+		         wxT("SELECT jagpid ")
+		         wxT("  FROM pgagent.pga_jobagent AG ")
+		         wxT("  LEFT JOIN pg_stat_activity PA ON jagpid=pid ")
+		         wxT(" WHERE pid IS NULL")
+		     );
+	}
+	else
+	{
+		rc = serviceConn->ExecuteVoid(
+		         wxT("INSERT INTO pga_tmp_zombies (jagpid) ")
+		         wxT("SELECT jagpid ")
+		         wxT("  FROM pgagent.pga_jobagent AG ")
+		         wxT("  LEFT JOIN pg_stat_activity PA ON jagpid=procpid ")
+		         wxT(" WHERE procpid IS NULL")
+		     );
+	}
 
 	if (rc > 0)
 	{
