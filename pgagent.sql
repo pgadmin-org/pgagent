@@ -618,27 +618,27 @@ COMMENT ON TRIGGER pga_schedule_trigger ON pgagent.pga_schedule IS 'Update the j
 CREATE OR REPLACE FUNCTION pgagent.pga_exception_trigger() RETURNS "trigger" AS '
 DECLARE
 
-    jobid int4 := 0;
+    v_jobid int4 := 0;
 
 BEGIN
 
      IF TG_OP = ''DELETE'' THEN
 
-        SELECT INTO jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = OLD.jexscid;
+        SELECT INTO v_jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = OLD.jexscid;
 
         -- update pga_job from remaining schedules
         -- the actual calculation of jobnextrun will be performed in the trigger
         UPDATE pgagent.pga_job
            SET jobnextrun = NULL
-         WHERE jobenabled AND jobid=jobid;
+         WHERE jobenabled AND jobid = v_jobid;
         RETURN OLD;
     ELSE
 
-        SELECT INTO jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = NEW.jexscid;
+        SELECT INTO v_jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = NEW.jexscid;
 
         UPDATE pgagent.pga_job
            SET jobnextrun = NULL
-         WHERE jobenabled AND jobid=jobid;
+         WHERE jobenabled AND jobid = v_jobid;
         RETURN NEW;
     END IF;
 END;
