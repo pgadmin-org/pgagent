@@ -139,7 +139,7 @@ unsigned int __stdcall threadProcedure(void *unused)
 // _popen doesn't work in Win2K from a service so we have to
 // do it the fun way :-)
 
-HANDLE win32_popen_r(const TCHAR *command)
+HANDLE win32_popen_r(const TCHAR *command, HANDLE &handle)
 {
 	HANDLE hWrite, hRead;
 	SECURITY_ATTRIBUTES saAttr;
@@ -185,16 +185,13 @@ HANDLE win32_popen_r(const TCHAR *command)
 	if (!ret)
 		return NULL;
 	else
-	{
-		CloseHandle(piProcInfo.hProcess);
 		CloseHandle(piProcInfo.hThread);
-	}
-
 
 	// Close the write end of the pipe and return the read end.
 	if (!CloseHandle(hWrite))
 		return NULL;
 
+	handle = piProcInfo.hProcess;
 	return hRead;
 }
 

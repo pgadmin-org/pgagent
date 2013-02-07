@@ -236,11 +236,11 @@ int Job::Execute()
 				// Execute the file and capture the output
 #ifdef __WIN32__
 				// The Windows way
-				HANDLE h_script;
+				HANDLE h_script, h_process;
 				DWORD dwRead;
 				char chBuf[4098];
 
-				h_script = win32_popen_r(filename.wc_str());
+				h_script = win32_popen_r(filename.wc_str(), h_process);
 				if (!h_script)
 				{
 					output.Printf(_("Couldn't execute script: %s, GetLastError() returned %d, errno = %d"), filename.c_str(), GetLastError(), errno);
@@ -264,8 +264,9 @@ int Job::Execute()
 				}
 
 
+				GetExitCodeProcess(h_process, (LPDWORD)&rc);
+				CloseHandle(h_process);
 				CloseHandle(h_script);
-				rc = 1;
 
 #else
 				// The *nix way.
@@ -295,10 +296,12 @@ int Job::Execute()
 				else
 					rc = -1;
 
-				// set success status for batch runs, be pessimistic bt default
+#endif
+
+				// set success status for batch runs, be pessimistic by default
+				LogMessage(wxString::Format(_("Script return code: %d"), rc), LOG_DEBUG);
 				if (rc == 0)
 					succeeded = true;
-#endif
 
 				// Delete the file/directory. If we fail, don't overwrite the script output in the log, just throw warnings.
 				if (!wxRemoveFile(filename))

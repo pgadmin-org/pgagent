@@ -54,7 +54,7 @@ void MainLoop();
 #ifdef __WIN32__
 #include <windows.h>
 void CheckForInterrupt();
-HANDLE win32_popen_r(const TCHAR *command);
+HANDLE win32_popen_r(const TCHAR *command, HANDLE &handle);
 #endif
 
 #endif // PGAGENT_H
