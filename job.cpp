@@ -245,6 +245,7 @@ int Job::Execute()
 				{
 					output.Printf(_("Couldn't execute script: %s, GetLastError() returned %d, errno = %d"), filename.c_str(), GetLastError(), errno);
 					LogMessage(output, LOG_WARNING);
+					CloseHandle(h_process);
 					rc = -1;
 					break;
 				}
