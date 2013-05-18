@@ -78,6 +78,11 @@ void setOptions(int argc, char **argv, const wxString &executable)
 					runInForeground = true;
 					break;
 				}
+				case 'P':
+				{
+					pidFile = getArg(argc, argv);
+					break;
+				}
 				case 's':
 				{
 					logFile = getArg(argc, argv);

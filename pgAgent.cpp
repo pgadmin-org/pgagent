@@ -27,6 +27,7 @@ long minLogLevel = LOG_ERROR;
 #ifndef __WXMSW__
 bool runInForeground = false;
 wxString logFile = wxEmptyString;
+wxString pidFile = wxEmptyString;
 #else
 //pgAgent Initialized
 void Initialized();

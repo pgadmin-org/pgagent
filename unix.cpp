@@ -30,6 +30,7 @@ void usage(const wxString &executable)
 	wxPrintf(_("-r <retry period after connection abort in seconds (>=10, default 30)>\n"));
 	wxPrintf(_("-s <log file (messages are logged to STDOUT if not specified>\n"));
 	wxPrintf(_("-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n"));
+	wxPrintf(_("-P <pid file>\n"));
 }
 
 void LogMessage(wxString msg, int level)
@@ -79,6 +80,25 @@ void LogMessage(wxString msg, int level)
 	}
 }
 
+void writePid(pid_t pid)
+{
+	wxFFile file;
+	wxString s;
+
+	if (!pidFile.IsEmpty())
+	{
+		file.Open(pidFile.c_str(), wxT("w"));
+		if (!file.IsOpened())
+		{
+			wxFprintf(stderr, _("Can not open the pidfile!"));
+			return;
+		}
+		s.Printf(wxT("%d"), (int) pid);
+		file.Write(s);
+		file.Close();
+	}
+}
+
 // Shamelessly lifted from pg_autovacuum...
 static void daemonize(void)
 {
@@ -91,7 +111,10 @@ static void daemonize(void)
 		exit(1);
 	}
 	else if (pid)
+	{
+		writePid(pid);
 		exit(0);
+	}
 
 #ifdef HAVE_SETSID
 	if (setsid() < 0)

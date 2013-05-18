@@ -32,6 +32,7 @@ extern wxString backendPid;
 #ifndef __WXMSW__
 extern bool runInForeground;
 extern wxString logFile;
+extern wxString pidFile;
 #endif
 
 // Log levels
