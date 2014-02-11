@@ -130,16 +130,31 @@ TARGET_LINK_LIBRARIES(pgagent ${PG_LIBRARIES} ${WX_LIBRARIES})
 # Installation
 IF (WIN32)
     INSTALL(TARGETS pgagent DESTINATION .)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION .)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent_upgrade.sql DESTINATION .)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent.sql DESTINATION .)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent_upgrade.sql DESTINATION .)
 ELSE(WIN32)
     INSTALL(TARGETS pgagent DESTINATION bin)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent.sql DESTINATION share)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/pgagent_upgrade.sql DESTINATION share)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent.sql DESTINATION share)
+    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent_upgrade.sql DESTINATION share)
 ENDIF(WIN32)
 
 INSTALL(FILES ${pgagent_SOURCE_DIR}/README DESTINATION .)
 INSTALL(FILES ${pgagent_SOURCE_DIR}/LICENSE DESTINATION .)
+
+# Extension
+IF(PG_EXTENSION)
+    ADD_CUSTOM_COMMAND(
+        OUTPUT pgagent--${VERSION}.sql pgagent.control
+        COMMAND ${CMAKE_COMMAND} -D VERSION=${VERSION} -P cmake/MakeExt.cmake
+        MAIN_DEPENDENCY sql/pgagent.sql
+    )
+    ADD_CUSTOM_TARGET(run ALL DEPENDS pgagent--${VERSION}.sql pgagent.control)
+    INSTALL(FILES pgagent--${VERSION}.sql DESTINATION ${PG_SHARE_DIR}/extension)
+    FILE(GLOB SQL "${CMAKE_CURRENT_SOURCE_DIR}/sql/*--*.sql")
+    FILE(GLOB CONTROL "${CMAKE_CURRENT_SOURCE_DIR}/*.control")
+    INSTALL(FILES pgagent.control ${CONTROL} ${SQL} DESTINATION ${PG_SHARE_DIR}/extension)
+ENDIF(PG_EXTENSION)
+
 
 ################################################################################
 # pgaevent
@@ -160,11 +175,13 @@ MESSAGE(STATUS "  Project                     : ${PROJECT_NAME}")
 MESSAGE(STATUS "  Description                 : ${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
 MESSAGE(STATUS "  Version                     : ${VERSION}")
 MESSAGE(STATUS " ")
-MESSAGE(STATUS "  PostgreSQL version          : ${PG_VERSION_STRING}")
+MESSAGE(STATUS "  PostgreSQL version string   : ${PG_VERSION_STRING}")
+MESSAGE(STATUS "  PostgreSQL version parts    : ${PG_MAJOR_VERSION}.${PG_MINOR_VERSION}.${PG_PATCH_VERSION}")
 MESSAGE(STATUS "  PostgreSQL path             : ${PG_ROOT_DIR}")
 MESSAGE(STATUS "  PostgreSQL config binary    : ${PG_CONFIG_PATH}")
 MESSAGE(STATUS "  PostgreSQL include path     : ${PG_INCLUDE_DIRS}")
 MESSAGE(STATUS "  PostgreSQL library path     : ${PG_LIBRARY_DIRS}")
+MESSAGE(STATUS "  PostgreSQL share path       : ${PG_SHARE_DIR}")
 MESSAGE(STATUS " ")
 MESSAGE(STATUS "  wxWidgets version           : ${WX_VERSION_STRING}")
 MESSAGE(STATUS "  wxWidgets path              : ${WX_ROOT_DIR}")

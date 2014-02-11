@@ -38,7 +38,8 @@ INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Import');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Export');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Summarisation');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Miscellaneous');
-
+-- Be sure to update pg_extension_config_dump() below and in
+-- pgagent--unpackaged--3.3.0.sql when adding new classes.
 
 
 CREATE TABLE pgagent.pga_job (
@@ -652,6 +653,14 @@ CREATE TRIGGER pga_exception_trigger AFTER INSERT OR UPDATE OR DELETE
   EXECUTE PROCEDURE pgagent.pga_exception_trigger();
 COMMENT ON TRIGGER pga_exception_trigger ON pgagent.pga_exception IS 'Update the job''s next run time whenever an exception changes';
 
-
+-- Extension dump support.
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobagent', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobclass', $$WHERE jclname NOT IN ('Routine Maintenance', 'Data Import', 'Data Export', 'Data Summarisation', 'Miscellaneous')$$);
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_job', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobstep', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_schedule', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_exception', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_joblog', '');
+-- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobsteplog', '');
 
 COMMIT TRANSACTION;

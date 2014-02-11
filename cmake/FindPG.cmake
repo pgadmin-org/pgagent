@@ -24,7 +24,12 @@
 # PG_LIBRARIES - The PostgreSQL client libraries.
 # PG_LIBRARY_DIRS - The directory containing the PostgreSQL client libraries.
 # PG_PKG_LIBRARY_DIRS - The directory containing the PostgreSQL package libraries.
+# PG_SHARE_DIR - The directory containing architecture-independent PostgreSQL support files.
 # PG_VERSION_STRING - The PostgreSQL version number.
+# PG_MAJOR_VERSION - The PostgreSQL major version (x in x.y.z).
+# PG_MINOR_VERSION - The PostgreSQL minor version (y in x.y.z).
+# PG_PATCH_VERSION - The PostgreSQL patch version (z in x.y.z).
+# PG_EXTENSION - Set to TRUE if PostgreSQL supports extensions.
 
 IF(NOT PG_STATIC OR PG_STATIC STREQUAL "")
     SET(_static "no")
@@ -62,11 +67,23 @@ IF(NOT _retval)
     GET_FILENAME_COMPONENT(PG_ROOT_DIR ${PG_CONFIG_PATH} PATH)
     GET_FILENAME_COMPONENT(PG_ROOT_DIR ${PG_ROOT_DIR} PATH)
 
+    # Split the version into its component parts.
+    STRING(REGEX MATCHALL "[0-9]+" PG_VERSION_PARTS "${PG_VERSION_STRING}")
+    LIST(GET PG_VERSION_PARTS 0 PG_MAJOR_VERSION)
+    LIST(GET PG_VERSION_PARTS 1 PG_MINOR_VERSION)
+    LIST(GET PG_VERSION_PARTS 2 PG_PATCH_VERSION)
+
+    # Are extensions supported?
+    IF((PG_MAJOR_VERSION GREATER 9) OR ((PG_MAJOR_VERSION EQUAL 9) AND (PG_MINOR_VERSION GREATER 0)))
+        SET(PG_EXTENSION TRUE)
+    ENDIF((PG_MAJOR_VERSION GREATER 9) OR ((PG_MAJOR_VERSION EQUAL 9) AND (PG_MINOR_VERSION GREATER 0)))
+
     IF(WIN32 AND NOT CYGWIN AND NOT MSYS)
 
         SET(PG_INCLUDE_DIRS "${PG_ROOT_DIR}/include")
         SET(PG_LIBRARY_DIRS "${PG_ROOT_DIR}/lib")
         SET(PG_PKG_LIBRARY_DIRS "${PG_ROOT_DIR}/lib")
+        SET(PG_SHARE_DIR "${PG_ROOT_DIR}/share")
 
         # There iare no static libraries on VC++ builds of PG.
         LIST(APPEND PG_LIBRARIES libpq.lib)
@@ -76,6 +93,7 @@ IF(NOT _retval)
         EXEC_PROGRAM(${PG_CONFIG_PATH} ARGS --includedir OUTPUT_VARIABLE PG_INCLUDE_DIRS)
         EXEC_PROGRAM(${PG_CONFIG_PATH} ARGS --libdir OUTPUT_VARIABLE PG_LIBRARY_DIRS)
         EXEC_PROGRAM(${PG_CONFIG_PATH} ARGS --pkglibdir OUTPUT_VARIABLE PG_PKG_LIBRARY_DIRS)
+        EXEC_PROGRAM(${PG_CONFIG_PATH} ARGS --sharedir OUTPUT_VARIABLE PG_SHARE_DIR)
 
         IF(_static)
             LIST(APPEND PG_LIBRARIES ${PG_LIBRARY_DIRS}/libpq.a)
