@@ -2,7 +2,7 @@
 //
 // pgAgent - PostgreSQL Tools
 //
-// Copyright (C) 2002 - 2012 The pgAdmin Development Team
+// Copyright (C) 2002 - 2014 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // win32.cpp - pgAgent win32 specific functions

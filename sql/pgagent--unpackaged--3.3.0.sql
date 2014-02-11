@@ -1,3 +1,13 @@
+/*
+// pgAgent - PostgreSQL Tools
+// 
+// Copyright (C) 2002 - 2014 The pgAdmin Development Team
+// This software is released under the PostgreSQL Licence
+//
+// pgagent--unpackaged--3.0.0.sql - Convert pgAgent existing tables and functions to an extension
+//
+*/
+
 \echo Use "CREATE EXTENSION pgagent FROM unpackaged" to load this file. \quit
 
 ALTER EXTENSION pgagent ADD TABLE pgagent.pga_jobagent;
