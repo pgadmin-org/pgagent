@@ -39,7 +39,7 @@ INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Export');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Summarisation');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Miscellaneous');
 -- Be sure to update pg_extension_config_dump() below and in
--- pgagent--unpackaged--3.3.0.sql when adding new classes.
+-- pgagent--unpackaged--3.4.sql when adding new classes.
 
 
 CREATE TABLE pgagent.pga_job (

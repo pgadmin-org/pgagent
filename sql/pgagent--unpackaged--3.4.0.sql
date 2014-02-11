@@ -4,7 +4,7 @@
 // Copyright (C) 2002 - 2014 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
-// pgagent--unpackaged--3.0.0.sql - Convert pgAgent existing tables and functions to an extension
+// pgagent--unpackaged--3.4.sql - Convert pgAgent existing tables and functions to an extension
 //
 */
 
