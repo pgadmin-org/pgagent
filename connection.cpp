@@ -397,8 +397,8 @@ bool connInfo::IsValidIP()
 
 	while (tkip4.HasMoreTokens())
 	{
-		unsigned long val = 0;
-		if (!tkip4.GetNextToken().ToULong(&val))
+		long val = 0;
+		if (!tkip4.GetNextToken().ToLong(&val))
 			break;
 		if (count == 0 || count == 3)
 			if (val > 0 && val < 255)
@@ -456,10 +456,12 @@ wxString connInfo::getConnectionString()
 
 	// host or hostaddr
 	if (!host.IsEmpty())
+	{
 		if (IsValidIP())
 			connStr += wxT(" hostaddr=") + host;
 		else
 			connStr += wxT(" host=") + host;
+	}
 
 	// connection timeout
 	if (connection_timeout != 0)
