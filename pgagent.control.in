@@ -1,6 +1,6 @@
 # pgagent extension
 comment = 'A PostgreSQL job scheduler'
-default_version = '${VERSION}'
+default_version = '${MAJOR_VERSION}.${MINOR_VERSION}'
 relocatable = false
 superuser = false
 schema = pgagent
