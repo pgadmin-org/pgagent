@@ -313,15 +313,7 @@ int DBconn::ExecuteVoid(const wxString &query)
 
 wxString DBconn::GetLastError()
 {
-	// Return the last error message, minus any trailing line ends
-	if (lastError.substr(lastError.length() - 2, 2) == wxT("\r\n")) // DOS
-		return lastError.substr(0, lastError.length() - 2);
-	else if (lastError.substr(lastError.length() - 1, 1) == wxT("\n")) // Unix
-		return lastError.substr(0, lastError.length() - 1);
-	else if (lastError.substr(lastError.length() - 1, 1) == wxT("\r")) // Mac
-		return lastError.substr(0, lastError.length() - 1);
-	else
-		return lastError;
+	return lastError.Trim(true);
 }
 
 ///////////////////////////////////////////////////////7
