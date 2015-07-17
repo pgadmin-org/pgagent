@@ -2,7 +2,7 @@
 //
 // pgAgent - PostgreSQL Tools
 //
-// Copyright (C) 2002 - 2014 The pgAdmin Development Team
+// Copyright (C) 2002 - 2015 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // misc.cpp - misc functions
@@ -15,6 +15,8 @@
 #ifndef __WXMSW__
 #include <unistd.h>
 #endif
+
+#define APPVERSION_STR wxT(PGAGENT_VERSION)
 
 // In unix.c or win32.c
 void usage(const wxString &executable);
@@ -42,6 +44,11 @@ wxString getArg(int &argc, char **&argv)
 	return s;
 }
 
+void printVersion()
+{
+	wxPrintf(_("PostgreSQL Scheduling Agent\n"));
+	wxPrintf(_("Version: %s\n"), APPVERSION_STR);
+}
 
 void setOptions(int argc, char **argv, const wxString &executable)
 {
@@ -71,6 +78,11 @@ void setOptions(int argc, char **argv, const wxString &executable)
 					if (val >= 0 && val <= 2)
 						minLogLevel = val;
 					break;
+				}
+				case 'v':
+				{
+					printVersion();
+					exit (0);
 				}
 #ifndef __WXMSW__
 				case 'f':

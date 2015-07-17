@@ -1,7 +1,7 @@
 #######################################################################
 #
 # pgAgent - PostgreSQL tools
-# Copyright (C) 2002 - 2014, The pgAdmin Development Team
+# Copyright (C) 2002 - 2015, The pgAdmin Development Team
 # This software is released under the PostgreSQL Licence
 #
 # CMakeLists.txt - CMake build configuration
@@ -27,7 +27,6 @@ SET(CMAKE_FIND_LIBRARY_PREFIXES "")
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
 
 SET(STATIC_BUILD YES CACHE BOOL "Statically link the executable?")
-
 ################################################################################
 # Apple stuff
 ################################################################################
@@ -61,12 +60,12 @@ PROJECT(pgagent)
 # in pgagent.sql and upgrade_pgagent.sql if the major version number is
 # changed. The full version number also needs to be included in pgAgent.rc and
 # pgaevent/pgamsgevent.rc at present.
-SET(VERSION 3.4.0)
+SET(VERSION "3.4.1")
 
 # CPack stuff
 SET(CPACK_PACKAGE_VERSION_MAJOR 3)
 SET(CPACK_PACKAGE_VERSION_MINOR 4)
-SET(CPACK_PACKAGE_VERSION_PATCH 0)
+SET(CPACK_PACKAGE_VERSION_PATCH 1)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
 SET(CPACK_PACKAGE_VENDOR "the pgAdmin Development Team")
@@ -79,6 +78,7 @@ SET(CPACK_SOURCE_GENERATOR TGZ)
 SET(CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store;/CVS/;/\\\\.svn/;\\\\.swp$;\\\\.#;/#;.*~;cscope.*")
 
 ADD_DEFINITIONS(-DPGAGENT_VERSION_MAJOR=${CPACK_PACKAGE_VERSION_MAJOR})
+ADD_DEFINITIONS(-DPGAGENT_VERSION="${VERSION}")
 
 # This must come after we set the CPACK variables!!
 INCLUDE(CPack)

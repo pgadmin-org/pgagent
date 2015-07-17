@@ -2,7 +2,7 @@
 //
 // pgAgent - PostgreSQL Tools
 //
-// Copyright (C) 2002 - 2014 The pgAdmin Development Team
+// Copyright (C) 2002 - 2015 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // win32.cpp - pgAgent win32 specific functions
@@ -36,6 +36,7 @@ static HANDLE serviceSync;
 static HANDLE eventHandle;
 
 bool stopService();
+void printVersion();
 
 // This will be called from MainLoop, if pgagent is initialized properly
 void Initialized()
@@ -435,12 +436,14 @@ bool removeService(const wxString &serviceName)
 void usage(const wxString &executable)
 {
 	wxFileName *fn = new wxFileName(executable);
+	printVersion();
 
 	wxPrintf(_("Usage:\n"));
 	wxPrintf(fn->GetName() + _(" REMOVE <serviceName>\n"));
 	wxPrintf(fn->GetName() + _(" INSTALL <serviceName> [options] <connect-string>\n"));
 	wxPrintf(fn->GetName() + _(" DEBUG [options] <connect-string>\n"));
 	wxPrintf(_("options:\n"));
+	wxPrintf(_("-v (display version info and then exit)\n"));
 	wxPrintf(_("-u <user or DOMAIN\\user>\n"));
 	wxPrintf(_("-p <password>\n"));
 	wxPrintf(_("-d <displayname>\n"));
