@@ -307,9 +307,7 @@ int Job::Execute()
 
 				// set success status for batch runs, be pessimistic by default
 				LogMessage(wxString::Format(_("Script return code: %d"), rc), LOG_DEBUG);
-				if (rc == 0)
-					succeeded = true;
-
+				succeeded = ((rc == 0) ? true : false);
 				// If output is empty then either script did not return any output
 				// or script threw some error into stderr.
 				// Check script threw some error into stderr
