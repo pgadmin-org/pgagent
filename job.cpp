@@ -412,6 +412,7 @@ JobThread::JobThread(const wxString &jid)
 JobThread::~JobThread()
 {
 	LogMessage(wxString::Format(_("Destroying job thread for job %s"), jobid.c_str()), LOG_DEBUG);
+	delete job;
 }
 
 
@@ -420,7 +421,6 @@ void *JobThread::Entry()
 	if (runnable)
 	{
 		job->Execute();
-		delete job;
 	}
 
 	return(NULL);
