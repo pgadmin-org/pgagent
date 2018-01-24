@@ -90,6 +90,9 @@ int MainRestartLoop(DBconn *serviceConn)
 	wxString hostname = wxGetFullHostName();
 
 	rc = serviceConn->ExecuteVoid(
+	         wxT("DELETE FROM pgagent.pga_jobagent WHERE jagpid in (SELECT pg_backend_pid())"));
+	
+	rc = serviceConn->ExecuteVoid(
 	         wxT("INSERT INTO pgagent.pga_jobagent (jagpid, jagstation) SELECT pg_backend_pid(), '") + hostname + wxT("'"));
 	if (rc < 0)
 		return rc;
