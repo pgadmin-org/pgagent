@@ -13,10 +13,24 @@
 #ifndef PGAGENT_H
 #define PGAGENT_H
 
-// Disable all the GUI classes that might get pulled in through the headers
-#define wxUSE_GUI 0
+#if BOOST_OS_WINDOWS
+#include <windows.h>
+#endif
 
-#include <wx/wx.h>
+#include <boost/asio.hpp>
+#include <boost/format.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "misc.h"
 #include "connection.h"
@@ -25,13 +39,13 @@
 extern long longWait;
 extern long shortWait;
 extern long minLogLevel;
-extern wxString connectString;
-extern wxString serviceDBname;
-extern wxString backendPid;
+extern std::wstring connectString;
+extern std::wstring serviceDBname;
+extern std::wstring backendPid;
 
-#ifndef __WXMSW__
+#if !BOOST_OS_WINDOWS
 extern bool runInForeground;
-extern wxString logFile;
+extern std::wstring logFile;
 #endif
 
 // Log levels
@@ -48,13 +62,12 @@ enum
 };
 
 // Prototypes
-void LogMessage(wxString msg, int level);
+void LogMessage(const std::wstring &msg, const int &level);
 void MainLoop();
 
-#ifdef __WIN32__
-#include <windows.h>
+#if BOOST_OS_WINDOWS
 void CheckForInterrupt();
-HANDLE win32_popen_r(const TCHAR *command, HANDLE &handle);
+HANDLE win32_popen_r(const WCHAR *command, HANDLE &handle);
 #endif
 
 #endif // PGAGENT_H

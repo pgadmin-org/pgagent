@@ -1,0 +1,10 @@
+CMakeCache.txt
+CMakeFiles/
+CPackConfig.cmake
+CPackSourceConfig.cmake
+Makefile
+cmake_install.cmake
+pgagent
+pgagent--3.4.sql
+pgagent.control
+*.log

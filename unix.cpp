@@ -14,76 +14,109 @@
 // *nix only!!
 #ifndef WIN32
 
-#include <wx/filename.h>
-#include <wx/ffile.h>
+#include <iostream>
 #include <fcntl.h>
+#include <fstream>
+
+using namespace std;
+
 void printVersion();
 
-void usage(const wxString &executable)
+void usage(const std::wstring &executable)
 {
-	wxFileName *fn = new wxFileName(executable);
+	char *appName = WStringToChar(executable);
 	printVersion();
 
-	wxPrintf(_("Usage:\n"));
-	wxPrintf(fn->GetName() + _(" [options] <connect-string>\n"));
-	wxPrintf(_("options:\n"));
-	wxPrintf(_("-v (display version info and then exit)\n"));
-	wxPrintf(_("-f run in the foreground (do not detach from the terminal)\n"));
-	wxPrintf(_("-t <poll time interval in seconds (default 10)>\n"));
-	wxPrintf(_("-r <retry period after connection abort in seconds (>=10, default 30)>\n"));
-	wxPrintf(_("-s <log file (messages are logged to STDOUT if not specified>\n"));
-	wxPrintf(_("-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n"));
+	fprintf(stdout, "Usage:\n");
+	fprintf(stdout, "%s [options] <connect-string>\n", appName);
+	fprintf(stdout, "options:\n");
+	fprintf(stdout, "-v (display version info and then exit)\n");
+	fprintf(stdout, "-f run in the foreground (do not detach from the terminal)\n");
+	fprintf(stdout, "-t <poll time interval in seconds (default 10)>\n");
+	fprintf(stdout, "-r <retry period after connection abort in seconds (>=10, default 30)>\n");
+	fprintf(stdout, "-s <log file (messages are logged to STDOUT if not specified>\n");
+	fprintf(stdout, "-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n");
+
+	if (appName)
+		delete []appName;
 }
 
-void LogMessage(wxString msg, int level)
+void LogMessage(const std::wstring &msg, const int &level)
 {
-	wxFFile file;
-	if (logFile.IsEmpty())
+	std::wofstream out;
+	bool writeToStdOut = false;
+
+	if (!logFile.empty())
 	{
-		file.Attach(stdout);
+		std::string log_file(logFile.begin(), logFile.end());
+		out.open((const char *)log_file.c_str(), ios::out | ios::app);
+		if (!out.is_open())
+		{
+			fprintf(stderr, "Can not open the logfile!");
+			return;
+		}
 	}
 	else
-	{
-		file.Open(logFile.c_str(), wxT("a"));
-	}
+		writeToStdOut = true;
 
-	if (!file.IsOpened())
-	{
-		wxFprintf(stderr, _("Can not open the logfile!"));
-		return;
-	}
+	boost::gregorian::date current_date(boost::gregorian::day_clock::local_day());
 
-	wxDateTime logTime = wxDateTime::Now();
-	wxString logTimeString = logTime.Format() + wxT(" : ");
+	std::wstring day_week = boost::lexical_cast<std::wstring>(current_date.day_of_week());
+	std::wstring year = boost::lexical_cast<std::wstring>(current_date.year());
+	std::wstring month = boost::lexical_cast<std::wstring>(current_date.month());
+	std::wstring day = boost::lexical_cast<std::wstring>(current_date.day());
+
+	boost::posix_time::ptime pt = boost::posix_time::second_clock::local_time();
+	std::wstring time_day = boost::lexical_cast<std::wstring>(pt.time_of_day());
+
+	std::wstring logTimeString = L"";
+	logTimeString = day_week + L" " + month + L" " + day + L" " + time_day + L" " + year + L" ";
 
 	switch (level)
 	{
 		case LOG_DEBUG:
 			if (minLogLevel >= LOG_DEBUG)
-				file.Write(logTimeString + _("DEBUG: ") + msg + wxT("\n"));
+			{
+				logTimeString = logTimeString + L"DEBUG: " + msg + L"\n";
+				if (writeToStdOut)
+					std::wcout << logTimeString;
+				else
+					out.write(logTimeString.c_str(), logTimeString.size());
+			}
 			break;
 		case LOG_WARNING:
 			if (minLogLevel >= LOG_WARNING)
-				file.Write(logTimeString + _("WARNING: ") + msg + wxT("\n"));
+			{
+				logTimeString = logTimeString + L"WARNING: " + msg + L"\n";
+				if (writeToStdOut)
+					std::wcout << logTimeString;
+				else
+					out.write(logTimeString.c_str(), logTimeString.size());
+			}
 			break;
 		case LOG_ERROR:
-			file.Write(logTimeString + _("ERROR: ") + msg + wxT("\n"));
+			logTimeString = logTimeString + L"ERROR: " + msg + L"\n";
+			if (writeToStdOut)
+				std::wcout << logTimeString;
+			else
+				out.write(logTimeString.c_str(), logTimeString.size());
 			exit(1);
 			break;
 		case LOG_STARTUP:
-			file.Write(logTimeString + _("WARNING: ") + msg + wxT("\n"));
+			logTimeString = logTimeString + L"WARNING: " + msg + L"\n";
+			if (writeToStdOut)
+				std::wcout << logTimeString;
+			else
+				out.write(logTimeString.c_str(), logTimeString.size());
 			break;
 	}
 
-	if (logFile.IsEmpty())
+	if (!logFile.empty())
 	{
-		file.Detach();
-	}
-	else
-	{
-		file.Close();
+		out.close();
 	}
 }
+
 
 // Shamelessly lifted from pg_autovacuum...
 static void daemonize(void)
@@ -91,9 +124,9 @@ static void daemonize(void)
 	pid_t pid;
 
 	pid = fork();
-	if (pid == (pid_t) - 1)
+	if (pid == (pid_t)-1)
 	{
-		LogMessage(_("Cannot disassociate from controlling TTY"), LOG_ERROR);
+		LogMessage(L"Cannot disassociate from controlling TTY", LOG_ERROR);
 		exit(1);
 	}
 	else if (pid)
@@ -102,7 +135,7 @@ static void daemonize(void)
 #ifdef HAVE_SETSID
 	if (setsid() < 0)
 	{
-		LogMessage(_("Cannot disassociate from controlling TTY"), LOG_ERROR);
+		LogMessage(L"Cannot disassociate from controlling TTY", LOG_ERROR);
 		exit(1);
 	}
 #endif
@@ -111,11 +144,8 @@ static void daemonize(void)
 
 int main(int argc, char **argv)
 {
-	// Statup wx
-	wxInitialize();
-
-	wxString executable;
-	executable = wxString::FromAscii(argv[0]);
+	std::wstring executable;
+	executable.assign(CharToWString(argv[0]));
 
 	if (argc < 2)
 	{

@@ -14,9 +14,9 @@
 // This is for Win32 only!!
 #ifdef WIN32
 
-#include <wx/filename.h>
-#include <wx/config.h>
 #include <process.h>
+
+using namespace std;
 
 // for debugging purposes, we can start the service paused
 
@@ -25,8 +25,8 @@
 
 static SERVICE_STATUS serviceStatus;
 static SERVICE_STATUS_HANDLE serviceStatusHandle;
-static wxString serviceName;
-static wxString user = wxT(".\\Administrator"), password;
+static std::wstring serviceName;
+static std::wstring user = L".\\Administrator", password;
 static HANDLE threadHandle = 0;
 
 
@@ -58,29 +58,27 @@ void CheckForInterrupt()
 	serviceIsRunning = true;
 }
 
-void LogMessage(wxString msg, int level)
+void LogMessage(const std::wstring &msg, const int &level)
 {
 	if (eventHandle)
 	{
-		LPCTSTR *tmp;
-
-		tmp = (LPCTSTR *)malloc(sizeof(LPCTSTR));
-		tmp[0] = _wcsdup(msg.wc_str());
+		LPCWSTR tmp;
+		tmp = _wcsdup(msg.c_str());
 
 		switch (level)
 		{
 			case LOG_DEBUG:
 				if (minLogLevel >= LOG_DEBUG)
-					ReportEvent(eventHandle, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
+					ReportEventW(eventHandle, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, &tmp, NULL);
 				break;
 
 			case LOG_WARNING:
 				if (minLogLevel >= LOG_WARNING)
-					ReportEvent(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
+					ReportEventW(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, &tmp, NULL);
 				break;
 
 			case LOG_ERROR:
-				ReportEvent(eventHandle, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
+				ReportEventW(eventHandle, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, &tmp, NULL);
 				stopService();
 
 				// Set pgagent initialized to true, as initService
@@ -96,8 +94,14 @@ void LogMessage(wxString msg, int level)
 
 				// Log startup/connection warnings (valid for any log level)
 			case LOG_STARTUP:
-				ReportEvent(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, tmp, NULL);
+				ReportEventW(eventHandle, EVENTLOG_WARNING_TYPE, 0, 0, NULL, 1, 0, &tmp, NULL);
 				break;
+		}
+
+		if (tmp)
+		{
+			free((void *)tmp);
+			tmp = NULL;
 		}
 	}
 	else
@@ -106,20 +110,20 @@ void LogMessage(wxString msg, int level)
 		{
 			case LOG_DEBUG:
 				if (minLogLevel >= LOG_DEBUG)
-					wxPrintf(_("DEBUG: %s\n"), msg);
+					wprintf(L"DEBUG: %s\n", msg.c_str());
 				break;
 			case LOG_WARNING:
 				if (minLogLevel >= LOG_WARNING)
-					wxPrintf(_("WARNING: %s\n"), msg);
+					wprintf(L"WARNING: %s\n", msg.c_str());
 				break;
 			case LOG_ERROR:
-				wxPrintf(_("ERROR: %s\n"), msg);
+				wprintf(L"ERROR: %s\n", msg.c_str());
 				pgagentInitialized = true;
 				exit(1);
 				break;
 				// Log startup/connection warnings (valid for any log level)
 			case LOG_STARTUP:
-				wxPrintf(_("WARNING: %s\n"), msg);
+				wprintf(L"WARNING: %s\n", msg.c_str());
 				break;
 		}
 	}
@@ -140,15 +144,15 @@ unsigned int __stdcall threadProcedure(void *unused)
 // _popen doesn't work in Win2K from a service so we have to
 // do it the fun way :-)
 
-HANDLE win32_popen_r(const TCHAR *command, HANDLE &handle)
+HANDLE win32_popen_r(const WCHAR *command, HANDLE &handle)
 {
 	HANDLE hWrite, hRead;
 	SECURITY_ATTRIBUTES saAttr;
 	BOOL ret = FALSE;
 
 	PROCESS_INFORMATION piProcInfo;
-	STARTUPINFO siStartInfo;
-	TCHAR *cmd;
+	STARTUPINFOW siStartInfo;
+	WCHAR *cmd;
 
 	cmd = _wcsdup(command);
 
@@ -172,16 +176,16 @@ HANDLE win32_popen_r(const TCHAR *command, HANDLE &handle)
 	siStartInfo.hStdOutput = hWrite;
 	siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-	ret = CreateProcess(NULL,
-	                    cmd,           // command line
-	                    NULL,          // process security attributes
-	                    NULL,          // primary thread security attributes
-	                    TRUE,          // handles are inherited
-	                    0,             // creation flags
-	                    NULL,          // use parent's environment
-	                    NULL,          // use parent's current directory
-	                    &siStartInfo,  // STARTUPINFO pointer
-	                    &piProcInfo);  // receives PROCESS_INFORMATION
+	ret = CreateProcessW(NULL,
+		cmd,           // command line
+		NULL,          // process security attributes
+		NULL,          // primary thread security attributes
+		TRUE,          // handles are inherited
+		0,             // creation flags
+		NULL,          // use parent's environment
+		NULL,          // use parent's current directory
+		&siStartInfo,  // STARTUPINFO pointer
+		&piProcInfo);  // receives PROCESS_INFORMATION
 
 	if (!ret)
 		return NULL;
@@ -222,7 +226,7 @@ bool continueService()
 bool stopService()
 {
 	pauseService();
-	CloseHandle (threadHandle);
+	CloseHandle(threadHandle);
 	threadHandle = 0;
 	return true;
 }
@@ -239,9 +243,9 @@ bool initService()
 	{
 		if (eventHandle)
 		{
-			serviceStatus.dwWaitHint += 1000 ;
+			serviceStatus.dwWaitHint += 1000;
 			serviceStatus.dwCheckPoint++;
-			SetServiceStatus(serviceStatusHandle, (LPSERVICE_STATUS) &serviceStatus);
+			SetServiceStatus(serviceStatusHandle, (LPSERVICE_STATUS)&serviceStatus);
 		}
 		Sleep(1000);
 	}
@@ -293,14 +297,14 @@ void CALLBACK serviceHandler(DWORD ctl)
 
 void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
 {
-	serviceName.Printf(wxT("%s"), (const char *)argv[0]);
+	serviceName = CharToWString((const char *)argv[0]);
 	serviceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
 	serviceStatus.dwCurrentState = SERVICE_START_PENDING;
 	serviceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_PAUSE_CONTINUE;
 	serviceStatus.dwWin32ExitCode = 0;
 	serviceStatus.dwCheckPoint = 0;
 	serviceStatus.dwWaitHint = 15000;
-	serviceStatusHandle = RegisterServiceCtrlHandler(serviceName.c_str(), serviceHandler);
+	serviceStatusHandle = RegisterServiceCtrlHandlerW(serviceName.c_str(), serviceHandler);
 	if (serviceStatusHandle)
 	{
 		SetServiceStatus(serviceStatusHandle, &serviceStatus);
@@ -323,25 +327,24 @@ void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
 
 ////////////////////////////////////////////////////////////
 // installation and removal
-bool installService(const wxString &serviceName, const wxString &executable,  const wxString &args, const wxString &displayname, const wxString &user, const wxString &password)
+bool installService(const std::wstring &serviceName, const std::wstring &executable, const std::wstring &args, const std::wstring &displayname, const std::wstring &user, const std::wstring &password)
 {
-	DWORD dwData;
 	bool done = false;
 
 	SC_HANDLE manager = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
 	if (manager)
 	{
-		wxString cmd = executable + wxT(" ") + args;
+		std::wstring cmd = executable + L" " + args;
 
-		wxString quser;
-		if (!user.Contains(wxT("\\")))
-			quser = wxT(".\\") + user;
+		std::wstring quser;
+		if (user.find(L"\\") == std::string::npos)
+			quser = L".\\" + user;
 		else
 			quser = user;
 
-		SC_HANDLE service = CreateService(manager, serviceName.c_str(), displayname.c_str(), SERVICE_ALL_ACCESS,
-		                                  SERVICE_WIN32_OWN_PROCESS, SERVICE_AUTO_START, SERVICE_ERROR_NORMAL,
-		                                  cmd.c_str(), 0, 0, 0, quser.c_str(), password.c_str());
+		SC_HANDLE service = CreateServiceW(manager, serviceName.c_str(), displayname.c_str(), SERVICE_ALL_ACCESS,
+			SERVICE_WIN32_OWN_PROCESS, SERVICE_AUTO_START, SERVICE_ERROR_NORMAL,
+			cmd.c_str(), 0, 0, 0, quser.c_str(), password.c_str());
 
 		if (service)
 		{
@@ -354,59 +357,89 @@ bool installService(const wxString &serviceName, const wxString &executable,  co
 			DWORD dw = GetLastError();
 
 			FormatMessage(
-			    FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			    FORMAT_MESSAGE_FROM_SYSTEM,
-			    NULL,
-			    dw,
-			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			    (LPTSTR) &lpMsgBuf,
-			    0, NULL
-			);
-			wxString error;
-			error.Printf(wxT("%s"), lpMsgBuf);
-			LogMessage(error, LOG_ERROR);
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				dw,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR)&lpMsgBuf,
+				0, NULL
+				);
+			LogMessage((boost::wformat(L"%s") % lpMsgBuf).str(), LOG_ERROR);
 		}
 
 		CloseServiceHandle(manager);
 	}
 
 	// Setup the event message DLL
-	wxRegKey *msgKey = new wxRegKey(wxT("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\") + serviceName);
-	if(!msgKey->Exists())
+	const std::wstring key_path(L"SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\" + serviceName);
+	HKEY key;
+	DWORD last_error = RegCreateKeyExW(HKEY_LOCAL_MACHINE,
+		key_path.c_str(),
+		0,
+		0,
+		REG_OPTION_NON_VOLATILE,
+		KEY_SET_VALUE,
+		0,
+		&key,
+		0);
+
+	if (ERROR_SUCCESS == last_error)
 	{
-		if (!msgKey->Create())
-			LogMessage(_("Could not open the message source registry key."), LOG_WARNING);
+		std::size_t found = executable.find_last_of(L"/\\");
+		std::wstring path = executable.substr(0, found) + L"\\pgaevent.dll";
+
+		DWORD last_error;
+		const DWORD types_supported = EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
+
+		last_error = RegSetValueExW(key,
+			L"EventMessageFile",
+			0,
+			REG_SZ,
+			(unsigned char *)(path.c_str()),
+			(path.length() + 1)*sizeof(std::wstring));
+
+		if (ERROR_SUCCESS == last_error)
+		{
+			last_error = RegSetValueExW(key,
+				L"TypesSupported",
+				0,
+				REG_DWORD,
+				(LPBYTE)&types_supported,
+				sizeof(types_supported));
+		}
+
+		if (ERROR_SUCCESS != last_error)
+		{
+			LogMessage(L"Could not set the event message file registry value.", LOG_WARNING);
+		}
+
+		RegCloseKey(key);
 	}
-
-	wxString path = executable.BeforeLast('\\') + wxT("\\pgaevent.dll");
-
-	if (!msgKey->SetValue(wxT("EventMessageFile"), path))
-		LogMessage(_("Could not set the event message file registry value."), LOG_WARNING);
-
-	dwData = EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
-
-	if (!msgKey->SetValue(wxT("TypesSupported"), dwData))
-		LogMessage(_("Could not set the supported types."), LOG_WARNING);;
+	else
+	{
+		LogMessage(L"Could not open the message source registry key.", LOG_WARNING);
+	}
 
 	return done;
 }
 
 
-bool removeService(const wxString &serviceName)
+bool removeService(const std::wstring &serviceName)
 {
 	bool done = false;
 
 	SC_HANDLE manager = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
 	if (manager)
 	{
-		SC_HANDLE service = OpenService(manager, serviceName.c_str(), SERVICE_ALL_ACCESS);
+		SC_HANDLE service = OpenServiceW(manager, serviceName.c_str(), SERVICE_ALL_ACCESS);
 		if (service)
 		{
 			SERVICE_STATUS serviceStatus;
 			ControlService(service, SERVICE_CONTROL_STOP, &serviceStatus);
 
 			int retries;
-			for (retries = 0 ; retries < 5 ; retries++)
+			for (retries = 0; retries < 5; retries++)
 			{
 				if (QueryServiceStatus(service, &serviceStatus))
 				{
@@ -425,44 +458,45 @@ bool removeService(const wxString &serviceName)
 	}
 
 	// Remove the event message DLL
-	wxRegKey *msgKey = new wxRegKey(wxT("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\") + serviceName);
-	msgKey->DeleteSelf();
+	const std::wstring key_path(L"SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\" + serviceName);
+	DWORD last_error = RegDeleteKeyW(HKEY_LOCAL_MACHINE, key_path.c_str());
+	if (ERROR_SUCCESS != last_error)
+	{
+		LogMessage(L"Failed to uninstall source", LOG_ERROR);
+	}
 
 	return done;
 }
 
-
-
-void usage(const wxString &executable)
+void usage(const std::wstring &executable)
 {
-	wxFileName *fn = new wxFileName(executable);
 	printVersion();
 
-	wxPrintf(_("Usage:\n"));
-	wxPrintf(fn->GetName() + _(" REMOVE <serviceName>\n"));
-	wxPrintf(fn->GetName() + _(" INSTALL <serviceName> [options] <connect-string>\n"));
-	wxPrintf(fn->GetName() + _(" DEBUG [options] <connect-string>\n"));
-	wxPrintf(_("options:\n"));
-	wxPrintf(_("-v (display version info and then exit)\n"));
-	wxPrintf(_("-u <user or DOMAIN\\user>\n"));
-	wxPrintf(_("-p <password>\n"));
-	wxPrintf(_("-d <displayname>\n"));
-	wxPrintf(_("-t <poll time interval in seconds (default 10)>\n"));
-	wxPrintf(_("-r <retry period after connection abort in seconds (>=10, default 30)>\n"));
-	wxPrintf(_("-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n"));
+	wprintf(L"Usage:\n");
+	wprintf(L"%s REMOVE <serviceName>\n", executable.c_str());
+	wprintf(L"%s INSTALL <serviceName> [options] <connect-string>\n", executable.c_str());
+	wprintf(L"%s DEBUG [options] <connect-string>\n", executable.c_str());
+	wprintf(L"options:\n");
+	wprintf(L"-v (display version info and then exit)\n");
+	wprintf(L"-u <user or DOMAIN\\user>\n");
+	wprintf(L"-p <password>\n");
+	wprintf(L"-d <displayname>\n");
+	wprintf(L"-t <poll time interval in seconds (default 10)>\n");
+	wprintf(L"-r <retry period after connection abort in seconds (>=10, default 30)>\n");
+	wprintf(L"-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n");
 }
 
 
 
 ////////////////////////////////////////////////////////////
 
-void setupForRun(int argc, char **argv, bool debug, const wxString &executable)
+void setupForRun(int argc, char **argv, bool debug, const std::wstring &executable)
 {
 	if (!debug)
 	{
-		eventHandle = RegisterEventSource(0, serviceName.c_str());
+		eventHandle = RegisterEventSourceW(0, serviceName.c_str());
 		if (!eventHandle)
-			LogMessage(_("Couldn't register event handle."), LOG_ERROR);
+			LogMessage(L"Couldn't register event handle.", LOG_ERROR);
 	}
 
 	setOptions(argc, argv, executable);
@@ -471,12 +505,8 @@ void setupForRun(int argc, char **argv, bool debug, const wxString &executable)
 
 void main(int argc, char **argv)
 {
-	// Statup wx
-	wxInitialize();
-
-	wxFileName file = wxString::FromAscii(*argv++);
-	file.MakeAbsolute();
-	wxString executable = file.GetFullPath();
+	std::wstring executable;
+	executable.assign(CharToWString(*argv++));
 
 	if (argc < 3)
 	{
@@ -484,21 +514,21 @@ void main(int argc, char **argv)
 		return;
 	}
 
-	wxString command;
-	command = wxString::FromAscii(*argv++);
+	std::wstring command;
+	command.assign(CharToWString(*argv++));
 
-	if (command != wxT("DEBUG"))
+	if (command != L"DEBUG")
 	{
-		serviceName = wxString::FromAscii(*argv++);
+		serviceName.assign(CharToWString(*argv++));
 		argc -= 3;
 	}
 	else
 		argc -= 2;
 
-	if (command == wxT("INSTALL"))
+	if (command == L"INSTALL")
 	{
-		wxString displayname = _("PostgreSQL Scheduling Agent - ") + serviceName;
-		wxString args = wxT("RUN ") + serviceName;
+		std::wstring displayname = L"PostgreSQL Scheduling Agent - " + serviceName;
+		std::wstring args = L"RUN " + serviceName;
 
 		while (argc-- > 0)
 		{
@@ -523,14 +553,14 @@ void main(int argc, char **argv)
 					}
 					default:
 					{
-						args += wxT(" ") + wxString::FromAscii(*argv);
+						args += L" " + CharToWString(*argv);
 						break;
 					}
 				}
 			}
 			else
 			{
-				args += wxT(" ") + wxString::FromAscii(*argv);
+				args += L" " + CharToWString(*argv);
 			}
 
 			argv++;
@@ -538,11 +568,11 @@ void main(int argc, char **argv)
 
 		bool rc = installService(serviceName, executable, args, displayname, user, password);
 	}
-	else if (command == wxT("REMOVE"))
+	else if (command == L"REMOVE")
 	{
 		bool rc = removeService(serviceName);
 	}
-	else if (command == wxT("DEBUG"))
+	else if (command == L"DEBUG")
 	{
 		setupForRun(argc, argv, true, executable);
 
@@ -553,15 +583,14 @@ void main(int argc, char **argv)
 
 		WaitForSingleObject(threadHandle, INFINITE);
 	}
-	else if (command == wxT("RUN"))
+	else if (command == L"RUN")
 	{
-		wxString app = _("pgAgent Service");
+		std::string app = "pgAgent Service";
 
 		SERVICE_TABLE_ENTRY serviceTable[] =
-		{ (LPWSTR)app.wc_str(), serviceMain, 0, 0};
+		{ (LPSTR)app.c_str(), serviceMain, 0, 0 };
 
 		setupForRun(argc, argv, false, executable);
-
 		if (!StartServiceCtrlDispatcher(serviceTable))
 		{
 			DWORD rc = GetLastError();

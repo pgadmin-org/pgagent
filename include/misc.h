@@ -15,10 +15,14 @@
 
 
 void WaitAWhile(const bool waitLong = false);
-void setOptions(int argc, char **argv, const wxString &executable);
-wxString getArg(int &argc, char **&argv);
-wxString NumToStr(const long l);
+void setOptions(int argc, char **argv, const std::wstring &executable);
+std::wstring getArg(int &argc, char **&argv);
+std::wstring NumToStr(const long l);
 void printVersion();
+std::wstring CharToWString(const char* cstr);
+char* WStringToChar(const std::wstring &wstr);
+std::string generateRandomString(size_t length);
+std::wstring getTemporaryDirectoryPath();
 
 #endif // MISC_H
 

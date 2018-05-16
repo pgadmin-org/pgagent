@@ -13,44 +13,35 @@
 #ifndef JOB_H
 #define JOB_H
 
-#include <wx/wx.h>
-
+#include <boost/thread.hpp>
 
 class Job
 {
 public:
-	Job(DBconn *conn, const wxString &jid);
+	Job(DBconn *conn, const std::wstring &jid);
 	~Job();
 
 	int Execute();
 	bool Runnable()
 	{
-		return status == wxT("r");
+		return status == L"r";
 	}
 
 protected:
 	DBconn *threadConn;
-	wxString jobid, logid;
-	wxString status;
+	std::wstring jobid, logid;
+	std::wstring status;
 };
 
-
-class JobThread : public wxThread
+class JobThread
 {
 public:
-	JobThread(const wxString &jid);
+	JobThread(const std::wstring &jid);
 	~JobThread();
-	bool Runnable()
-	{
-		return runnable;
-	}
-
-	virtual void *Entry();
+	void operator()();
 
 private:
-	wxString jobid;
-	bool runnable;
-	Job *job;
+	std::wstring  m_jobid;
 };
 
 #endif // JOB_H
