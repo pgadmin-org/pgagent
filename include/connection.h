@@ -17,11 +17,30 @@
 
 class DBresult;
 
+class CONNinfo
+{
+public:
+    bool Set(const std::wstring& connStr);
+	const std::wstring Get(const std::wstring &dbName=L"") const;
+    const std::wstring& GetError() const { return m_error; }
+
+	static const std::wstring Parse(
+			const std::wstring& connStr, std::wstring *error,
+			std::wstring *dbName, bool forLogging=false
+		);
+
+	operator bool() const { return m_connStr.empty(); }
+
+private:
+    std::wstring  m_connStr;
+    std::wstring  m_dbName;
+    std::wstring  m_error;
+};
 
 class DBconn
 {
 protected:
-	DBconn(const std::wstring &, const std::wstring &);
+	DBconn(const std::wstring& connStr);
 	~DBconn();
 
 public:
@@ -29,33 +48,18 @@ public:
 
 	bool BackendMinimumVersion(int major, int minor);
 
-	static DBconn *Get(const std::wstring &connStr, const std::wstring &db);
+	static DBconn *Get(const std::wstring &connStr=L"", const std::wstring &db=L"");
 	static DBconn *InitConnection(const std::wstring &connectString);
 
 	static void ClearConnections(bool allIncludingPrimary = false);
-	static void SetBasicConnectString(const std::wstring &bcs)
-	{
-		ms_basicConnectString = bcs;
-	}
-	static const std::wstring &GetBasicConnectString()
-	{
-		return ms_basicConnectString;
-	}
 
 	std::wstring GetLastError();
-	std::wstring GetDBname()
-	{
-		return dbname;
-	}
 
-	bool IsValid()
-	{
-		return conn != 0;
-	}
+    operator bool() const { return m_conn != NULL; }
 
 	bool LastCommandOk()
 	{
-		return IsCommandOk((ExecStatusType)lastResult);
+		return IsCommandOk((ExecStatusType)m_lastResult);
 	}
 
 	bool IsCommandOk(ExecStatusType ret)
@@ -77,12 +81,12 @@ public:
 
 	void SetLastResult(int res)
 	{
-		lastResult = res;
+		m_lastResult = res;
 	}
 
 	int GetLastResult()
 	{
-		return lastResult;
+		return m_lastResult;
 	}
 
 	DBresult *Execute(const std::wstring &query);
@@ -90,20 +94,29 @@ public:
 	int ExecuteVoid(const std::wstring &query);
 	void Return();
 
+    const std::wstring &DebugConnectionStr() const;
+
 private:
 	bool Connect(const std::wstring &connectString);
 
-	int minorVersion, majorVersion;
+	int              m_minorVersion,
+                     m_majorVersion;
 
 protected:
-	static std::wstring ms_basicConnectString;
-	static DBconn *ms_primaryConn;
+	static CONNinfo  ms_basicConnInfo;
+	static DBconn   *ms_primaryConn;
 
-	std::wstring dbname, lastError, connStr;
-	PGconn *conn;
-	DBconn *next, *prev;
-	bool inUse;
-	int lastResult;
+	std::wstring     m_lastError;
+	std::wstring     m_connStr;
+
+	PGconn          *m_conn;
+	DBconn          *m_next;
+	DBconn          *m_prev;
+
+	bool             m_remoteDatabase;
+	bool             m_inUse;
+	int              m_lastResult;
+
 	friend class DBresult;
 
 };
@@ -122,25 +135,25 @@ public:
 
 	bool IsValid() const
 	{
-		return result != NULL;
+		return m_result != NULL;
 	}
 	bool HasData() const
 	{
-		return currentRow < maxRows;
+		return m_currentRow < m_maxRows;
 	}
 	void MoveNext()
 	{
-		if (currentRow < maxRows) currentRow++;
+		if (m_currentRow < m_maxRows) m_currentRow++;
 	}
 
 	long RowsAffected() const
 	{
-		return atol(PQcmdTuples(result));
+		return atol(PQcmdTuples(m_result));
 	}
 
 protected:
-	PGresult *result;
-	int currentRow, maxRows;
+	PGresult *m_result;
+	int m_currentRow, m_maxRows;
 
 	friend class DBconn;
 };
@@ -191,34 +204,6 @@ public:
 
 protected:
 	DBresult* m_ptr;
-};
-
-
-class connInfo
-{
-public:
-	connInfo()
-	{
-		isValid = false;
-		connection_timeout = 0;
-		port = 0;
-	}
-
-private:
-	std::wstring  user;
-	unsigned long port;
-	std::wstring  host;
-	std::wstring  dbname;
-	unsigned long connection_timeout;
-	std::wstring  password;
-	bool          isValid;
-
-	std::wstring getConnectionString();
-	static connInfo getConnectionInfo(const std::wstring &connStr);
-
-protected:
-	bool IsValidIP();
-	friend class DBconn;
 };
 
 #endif // CONNECTION_H

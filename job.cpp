@@ -392,9 +392,7 @@ JobThread::~JobThread()
 
 void JobThread::operator()()
 {
-	DBconn *threadConn = DBconn::Get(
-		DBconn::GetBasicConnectString(), serviceDBname
-		);
+	DBconn *threadConn = DBconn::Get();
 
 	if (threadConn)
 	{

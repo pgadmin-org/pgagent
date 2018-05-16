@@ -16,7 +16,6 @@
 #endif
 
 std::wstring connectString;
-std::wstring serviceDBname;
 std::wstring backendPid;
 long longWait = 30;
 long shortWait = 5;
@@ -149,10 +148,8 @@ void MainLoop()
 		LogMessage(L"Creating primary connection", LOG_DEBUG);
 		DBconn *serviceConn = DBconn::InitConnection(connectString);
 
-		if (serviceConn && serviceConn->IsValid())
+		if (serviceConn)
 		{
-			serviceDBname = serviceConn->GetDBname();
-
 			// Basic sanity check, and a chance to get the serviceConn's PID
 			LogMessage(L"Database sanity check", LOG_DEBUG);
 			DBresultPtr res = serviceConn->Execute(L"SELECT count(*) As count, pg_backend_pid() AS pid FROM pg_class cl JOIN pg_namespace ns ON ns.oid=relnamespace WHERE relname='pga_job' AND nspname='pgagent'");

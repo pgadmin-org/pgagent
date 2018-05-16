@@ -40,7 +40,6 @@ extern long longWait;
 extern long shortWait;
 extern long minLogLevel;
 extern std::wstring connectString;
-extern std::wstring serviceDBname;
 extern std::wstring backendPid;
 
 #if !BOOST_OS_WINDOWS
