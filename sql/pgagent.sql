@@ -1,7 +1,7 @@
 /*
 // pgAgent - PostgreSQL Tools
 // 
-// Copyright (C) 2002 - 2016 The pgAdmin Development Team
+// Copyright (C) 2002 - 2018 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // pgagent.sql - pgAgent tables and functions
@@ -39,7 +39,7 @@ INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Export');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Summarisation');
 INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Miscellaneous');
 -- Be sure to update pg_extension_config_dump() below and in
--- pgagent--unpackaged--3.4.sql when adding new classes.
+-- upgrade scripts etc, when adding new classes.
 
 
 CREATE TABLE pgagent.pga_job (
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
 BEGIN
     -- RETURNS PGAGENT MAJOR VERSION
     -- WE WILL CHANGE THE MAJOR VERSION, ONLY IF THERE IS A SCHEMA CHANGE
-    RETURN 3;
+    RETURN 4;
 END;
 ' LANGUAGE 'plpgsql' VOLATILE;
 

@@ -1,7 +1,7 @@
 #######################################################################
 #
 # pgAgent - PostgreSQL tools
-# Copyright (C) 2002 - 2016, The pgAdmin Development Team
+# Copyright (C) 2002 - 2018, The pgAdmin Development Team
 # This software is released under the PostgreSQL Licence
 #
 # CMakeLists.txt - CMake build configuration
@@ -62,12 +62,12 @@ PROJECT(pgagent)
 # in pgagent.sql and upgrade_pgagent.sql if the major version number is
 # changed. The full version number also needs to be included in pgAgent.rc and
 # pgaevent/pgamsgevent.rc at present.
-SET(VERSION "3.4.1")
+SET(VERSION "4.0.0")
 
 # CPack stuff
-SET(CPACK_PACKAGE_VERSION_MAJOR 3)
-SET(CPACK_PACKAGE_VERSION_MINOR 4)
-SET(CPACK_PACKAGE_VERSION_PATCH 1)
+SET(CPACK_PACKAGE_VERSION_MAJOR 4)
+SET(CPACK_PACKAGE_VERSION_MINOR 0)
+SET(CPACK_PACKAGE_VERSION_PATCH 0)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
 SET(CPACK_PACKAGE_VENDOR "the pgAdmin Development Team")
@@ -142,11 +142,9 @@ TARGET_LINK_LIBRARIES(
 IF (WIN32)
     INSTALL(TARGETS pgagent DESTINATION .)
     INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent.sql DESTINATION .)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent_upgrade.sql DESTINATION .)
 ELSE(WIN32)
     INSTALL(TARGETS pgagent DESTINATION bin)
     INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent.sql DESTINATION share)
-    INSTALL(FILES ${pgagent_SOURCE_DIR}/sql/pgagent_upgrade.sql DESTINATION share)
 ENDIF(WIN32)
 
 INSTALL(FILES ${pgagent_SOURCE_DIR}/README DESTINATION .)

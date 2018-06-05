@@ -1,10 +1,17 @@
+.idea
 CMakeCache.txt
 CMakeFiles/
 CPackConfig.cmake
 CPackSourceConfig.cmake
 Makefile
 cmake_install.cmake
-pgagent
-pgagent--3.4.sql
-pgagent.control
+install_manifest.txt
+# Ignore 'pgagent' & 'pgagent.control' in root directory only.
+/pgagent
+!/*/pgagent
+/pgagent.control
+!/*/pgagent.control
 *.log
+# Ignore '*.sql' files in root directory only.
+/*.sql
+!/*/*.sql
