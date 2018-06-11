@@ -207,7 +207,7 @@ void MainLoop()
 			MainRestartLoop(serviceConn);
 		}
 
-		LogMessage((boost::wformat(L"Couldn't create the primary connection (attempt %d): %s") % attemptCount % serviceConn->GetLastError()).str(), LOG_STARTUP);
+		LogMessage((boost::wformat(L"Couldn't create the primary connection [Attempt #%d]") % attemptCount).str(), LOG_STARTUP);
 
 		DBconn::ClearConnections(true);
 

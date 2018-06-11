@@ -160,7 +160,7 @@ DBconn *DBconn::InitConnection(const std::wstring &connectString)
 			);
 	}
 
-	if (!ms_primaryConn)
+	if (ms_primaryConn->m_conn == NULL)
 	{
 		std::wstring error = ms_primaryConn->GetLastError();
 		delete ms_primaryConn;
