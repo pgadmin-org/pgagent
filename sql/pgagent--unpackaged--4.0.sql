@@ -1,6 +1,6 @@
 /*
 // pgAgent - PostgreSQL Tools
-// 
+//
 // Copyright (C) 2002 - 2018 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
@@ -42,3 +42,11 @@ SELECT pg_catalog.pg_extension_config_dump('pga_schedule', '');
 SELECT pg_catalog.pg_extension_config_dump('pga_exception', '');
 SELECT pg_catalog.pg_extension_config_dump('pga_joblog', '');
 SELECT pg_catalog.pg_extension_config_dump('pga_jobsteplog', '');
+
+CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
+BEGIN
+    -- RETURNS PGAGENT MAJOR VERSION
+    -- WE WILL CHANGE THE MAJOR VERSION, ONLY IF THERE IS A SCHEMA CHANGE
+    RETURN 4;
+END;
+' LANGUAGE 'plpgsql' VOLATILE;
