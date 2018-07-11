@@ -18,41 +18,6 @@ DBconn *DBconn::ms_primaryConn = NULL;
 CONNinfo DBconn::ms_basicConnInfo;
 static boost::mutex s_poolLock;
 
-class MutexLocker
-{
-public:
-	MutexLocker(boost::mutex *lock): m_lock(lock)
-	{
-		if (m_lock)
-			m_lock->lock();
-	}
-
-	~MutexLocker()
-	{
-		if (m_lock)
-			m_lock->unlock();
-	}
-
-	// When the exit(code) is being called, static object is being released
-	// earlier. Hence - it is a good idea to set the current mutex object to
-	// NULL to avoid ASSERTION in debug mode (specifically on OSX).
-	MutexLocker& operator =(boost::mutex *lock)
-	{
-		if (m_lock)
-			m_lock->unlock();
-		m_lock = lock;
-
-		if (m_lock)
-			m_lock->lock();
-
-		return *this;
-	}
-
-private:
-	boost::mutex *m_lock;
-	bool is_locked;
-};
-
 DBconn::DBconn(const std::wstring &connectString)
 : m_inUse(false), m_next(NULL), m_prev(NULL), m_minorVersion(0),
 	m_majorVersion(0)

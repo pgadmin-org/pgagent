@@ -18,6 +18,8 @@
 #include <fcntl.h>
 #include <fstream>
 
+static boost::mutex s_loggerLock;
+
 using namespace std;
 
 void printVersion();
@@ -45,6 +47,7 @@ void LogMessage(const std::wstring &msg, const int &level)
 {
 	std::wofstream out;
 	bool writeToStdOut = false;
+	MutexLocker locker(&s_loggerLock);
 
 	if (!logFile.empty())
 	{
@@ -100,6 +103,14 @@ void LogMessage(const std::wstring &msg, const int &level)
 				std::wcout << logTimeString;
 			else
 				out.write(logTimeString.c_str(), logTimeString.size());
+			// On system exit, boost::mutex object calls
+			// pthread_mutex_destroy(...) on the underlying native mutex object.
+			// But - it returns errorcode 'BUSY' instead of 0. Because - it was
+			// still keeping the lock on the resource. And, that results into
+			// an assertion in debug mode.
+			//
+			// Hence - we need to unlock the mutex before calling system exit.
+			locker = (boost::mutex *)NULL;
 			exit(1);
 			break;
 		case LOG_STARTUP:
