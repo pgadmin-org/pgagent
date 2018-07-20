@@ -134,9 +134,15 @@ IF(WIN32)
 ENDIF(WIN32)
 
 ADD_EXECUTABLE(pgagent ${_srcs})
+IF(UNIX AND NOT APPLE)
+TARGET_LINK_LIBRARIES(
+        pgagent ${PG_LIBRARIES} ${Boost_LIBRARIES} -pthread
+)
+ELSE()
 TARGET_LINK_LIBRARIES(
         pgagent ${PG_LIBRARIES} ${Boost_LIBRARIES}
 )
+ENDIF()
 
 # Installation
 IF (WIN32)
