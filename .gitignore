@@ -3,7 +3,7 @@ CMakeCache.txt
 CMakeFiles/
 CPackConfig.cmake
 CPackSourceConfig.cmake
-Makefile
+/Makefile
 cmake_install.cmake
 install_manifest.txt
 # Ignore 'pgagent' & 'pgagent.control' in root directory only.
@@ -15,3 +15,8 @@ install_manifest.txt
 # Ignore '*.sql' files in root directory only.
 /*.sql
 !/*/*.sql
+/results/init.out
+/results/job.out
+/regression.diffs
+/regression.out
+/pgagent.out

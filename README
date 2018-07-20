@@ -46,3 +46,13 @@ Boost_USE_STATIC_LIBS            OFF
 
 6) Run 'make' to build pgAgent on Mac or Unix, or open the generated project
    files in VC++ on Windows and build the solution in the desired configuration.
+
+Running Regression Tests
+========================
+
+To run the regression tests, use a command such as:
+
+make USE_PGXS=1 -f test/Makefile installcheck
+
+You will need to ensure that the appropriate pg_config executable is in the path
+and that variables such as PGPORT and PGUSER are set if required.
