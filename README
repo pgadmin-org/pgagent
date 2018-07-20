@@ -15,7 +15,7 @@ Building pgAgent
 You will need:
 
 - A C/C++ compiler, such as GCC or Microsoft Visual C++ on Windows.
-- CMake 2.6 (from www.cmake.org)
+- CMake 3.3 (from www.cmake.org)
 - A Boost library 1.41 or higher installation
 - A PostgreSQL 8.3 or higher installation
 
