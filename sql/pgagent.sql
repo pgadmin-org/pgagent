@@ -125,6 +125,7 @@ jlgstart             timestamptz          NOT NULL DEFAULT current_timestamp,
 jlgduration          interval             NULL
 ) WITHOUT OIDS;
 CREATE INDEX pga_joblog_jobid ON pgagent.pga_joblog(jlgjobid);
+CREATE INDEX pga_joblog_jlgstart ON pgagent.pga_joblog (jlgstart);
 COMMENT ON TABLE pgagent.pga_joblog IS 'Job run logs.';
 COMMENT ON COLUMN pgagent.pga_joblog.jlgstatus IS 'Status of job: r=running, s=successfully finished, f=failed, i=no steps to execute, d=aborted';
 
@@ -141,6 +142,8 @@ jslduration          interval             NULL,
 jsloutput            text
 ) WITHOUT OIDS;
 CREATE INDEX pga_jobsteplog_jslid ON pgagent.pga_jobsteplog(jsljlgid);
+CREATE INDEX pga_jobsteplog_jsljstid ON pgagent.pga_jobsteplog (jsljstid);
+CREATE INDEX pga_jobsteplog_jslstart ON pgagent.pga_jobsteplog (jslstart);
 COMMENT ON TABLE pgagent.pga_jobsteplog IS 'Job step run logs.';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslstatus IS 'Status of job step: r=running, s=successfully finished,  f=failed stopping job, i=ignored failure, d=aborted';
 COMMENT ON COLUMN pgagent.pga_jobsteplog.jslresult IS 'Return code of job step';
