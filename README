@@ -16,7 +16,7 @@ You will need:
 
 - A C/C++ compiler, such as GCC or Microsoft Visual C++ on Windows.
 - CMake 3.3 (from www.cmake.org)
-- A Boost library 1.41 or higher installation
+- A Boost library 1.66 or higher installation
 - A PostgreSQL 8.3 or higher installation
 
 1) Unpack the pgAgent source code
