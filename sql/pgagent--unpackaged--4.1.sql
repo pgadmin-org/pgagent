@@ -1,7 +1,7 @@
 /*
 // pgAgent - PostgreSQL Tools
 //
-// Copyright (C) 2002 - 2018 The pgAdmin Development Team
+// Copyright (C) 2002 - 2020 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // pgagent--unpackaged--4.1.sql - Convert pgAgent existing tables and functions to an extension

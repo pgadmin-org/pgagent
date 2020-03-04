@@ -2,7 +2,7 @@
 //
 // pgAgent - PostgreSQL Tools
 //
-// Copyright (C) 2002 - 2018, The pgAdmin Development Team
+// Copyright (C) 2002 - 2020, The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
 // pgAgent.h - main include
