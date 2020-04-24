@@ -1,149 +1,47 @@
 /*
 // pgAgent - PostgreSQL Tools
-// 
-// Copyright (C) 2002 - 2020, The pgAdmin Development Team
+//
+// Copyright (C) 2002 - 2020 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
-// pgagent.sql - pgAgent tables and functions
+// pgagent--unpackaged--4.2.sql - Convert pgAgent existing tables and functions to an extension
 //
 */
 
-BEGIN TRANSACTION;
+\echo Use "CREATE EXTENSION pgagent FROM unpackaged" to load this file. \quit
 
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_jobagent;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_jobclass;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_job;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_jobstep;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_schedule;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_exception;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_joblog;
+ALTER EXTENSION pgagent ADD TABLE pgagent.pga_jobsteplog;
 
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_exception_jexid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_job_jobid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_jobclass_jclid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_joblog_jlgid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_jobstep_jstid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_jobsteplog_jslid_seq;
+ALTER EXTENSION pgagent ADD SEQUENCE pgagent.pga_schedule_jscid_seq;
 
-CREATE SCHEMA pgagent;
-COMMENT ON SCHEMA pgagent IS 'pgAgent system tables';
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pgagent_schema_version();
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pga_next_schedule(int4, timestamptz, timestamptz, _bool, _bool, _bool, _bool, _bool);
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pga_is_leap_year(int2);
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pga_job_trigger();
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pga_schedule_trigger();
+ALTER EXTENSION pgagent ADD FUNCTION pgagent.pga_exception_trigger();
 
-
-
-CREATE TABLE pgagent.pga_jobagent (
-jagpid               int4                 NOT NULL PRIMARY KEY,
-jaglogintime         timestamptz          NOT NULL DEFAULT current_timestamp,
-jagstation           text                 NOT NULL
-) WITHOUT OIDS;
-COMMENT ON TABLE pgagent.pga_jobagent IS 'Active job agents';
-
-
-
-CREATE TABLE pgagent.pga_jobclass (
-jclid                serial               NOT NULL PRIMARY KEY,
-jclname              text                 NOT NULL
-) WITHOUT OIDS;
-CREATE UNIQUE INDEX pga_jobclass_name ON pgagent.pga_jobclass(jclname);
-COMMENT ON TABLE pgagent.pga_jobclass IS 'Job classification';
-
-INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Routine Maintenance');
-INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Import');
-INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Export');
-INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Data Summarisation');
-INSERT INTO pgagent.pga_jobclass (jclname) VALUES ('Miscellaneous');
--- Be sure to update pg_extension_config_dump() below and in
--- upgrade scripts etc, when adding new classes.
-
-
-CREATE TABLE pgagent.pga_job (
-jobid                serial               NOT NULL PRIMARY KEY,
-jobjclid             int4                 NOT NULL REFERENCES pgagent.pga_jobclass (jclid) ON DELETE RESTRICT ON UPDATE RESTRICT,
-jobname              text                 NOT NULL,
-jobdesc              text                 NOT NULL DEFAULT '',
-jobhostagent         text                 NOT NULL DEFAULT '',
-jobenabled           bool                 NOT NULL DEFAULT true,
-jobcreated           timestamptz          NOT NULL DEFAULT current_timestamp,
-jobchanged           timestamptz          NOT NULL DEFAULT current_timestamp,
-jobagentid           int4                 NULL REFERENCES pgagent.pga_jobagent(jagpid) ON DELETE SET NULL ON UPDATE RESTRICT,
-jobnextrun           timestamptz          NULL,
-joblastrun           timestamptz          NULL
-) WITHOUT OIDS;
-COMMENT ON TABLE pgagent.pga_job IS 'Job main entry';
-COMMENT ON COLUMN pgagent.pga_job.jobagentid IS 'Agent that currently executes this job.';
-
-
-
-CREATE TABLE pgagent.pga_jobstep (
-jstid                serial               NOT NULL PRIMARY KEY,
-jstjobid             int4                 NOT NULL REFERENCES pgagent.pga_job (jobid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jstname              text                 NOT NULL,
-jstdesc              text                 NOT NULL DEFAULT '',
-jstenabled           bool                 NOT NULL DEFAULT true,
-jstkind              char                 NOT NULL CHECK (jstkind IN ('b', 's')), -- batch, sql
-jstcode              text                 NOT NULL,
-jstconnstr           text                 NOT NULL DEFAULT '' CHECK ((jstconnstr != '' AND jstkind = 's' ) OR (jstconnstr = '' AND (jstkind = 'b' OR jstdbname != ''))),
-jstdbname            name                 NOT NULL DEFAULT '' CHECK ((jstdbname != '' AND jstkind = 's' ) OR (jstdbname = '' AND (jstkind = 'b' OR jstconnstr != ''))),
-jstonerror           char                 NOT NULL CHECK (jstonerror IN ('f', 's', 'i')) DEFAULT 'f', -- fail, success, ignore
-jscnextrun           timestamptz          NULL
-) WITHOUT OIDS;
-CREATE INDEX pga_jobstep_jobid ON pgagent.pga_jobstep(jstjobid);
-COMMENT ON TABLE pgagent.pga_jobstep IS 'Job step to be executed';
-COMMENT ON COLUMN pgagent.pga_jobstep.jstkind IS 'Kind of jobstep: s=sql, b=batch';
-COMMENT ON COLUMN pgagent.pga_jobstep.jstonerror IS 'What to do if step returns an error: f=fail the job, s=mark step as succeeded and continue, i=mark as fail but ignore it and proceed';
-
-
-
-CREATE TABLE pgagent.pga_schedule (
-jscid                serial               NOT NULL PRIMARY KEY,
-jscjobid             int4                 NOT NULL REFERENCES pgagent.pga_job (jobid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jscname              text                 NOT NULL,
-jscdesc              text                 NOT NULL DEFAULT '',
-jscenabled           bool                 NOT NULL DEFAULT true,
-jscstart             timestamptz          NOT NULL DEFAULT current_timestamp,
-jscend               timestamptz          NULL,
-jscminutes           bool[60]             NOT NULL DEFAULT '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}',
-jschours             bool[24]             NOT NULL DEFAULT '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}',
-jscweekdays          bool[7]              NOT NULL DEFAULT '{f,f,f,f,f,f,f}',
-jscmonthdays         bool[32]             NOT NULL DEFAULT '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}',
-jscmonths            bool[12]             NOT NULL DEFAULT '{f,f,f,f,f,f,f,f,f,f,f,f}',
-CONSTRAINT pga_schedule_jscminutes_size CHECK (array_upper(jscminutes, 1) = 60),
-CONSTRAINT pga_schedule_jschours_size CHECK (array_upper(jschours, 1) = 24),
-CONSTRAINT pga_schedule_jscweekdays_size CHECK (array_upper(jscweekdays, 1) = 7),
-CONSTRAINT pga_schedule_jscmonthdays_size CHECK (array_upper(jscmonthdays, 1) = 32),
-CONSTRAINT pga_schedule_jscmonths_size CHECK (array_upper(jscmonths, 1) = 12)
-) WITHOUT OIDS;
-CREATE INDEX pga_jobschedule_jobid ON pgagent.pga_schedule(jscjobid);
-COMMENT ON TABLE pgagent.pga_schedule IS 'Schedule for a job';
-
-
-
-CREATE TABLE pgagent.pga_exception (
-jexid                serial               NOT NULL PRIMARY KEY,
-jexscid              int4                 NOT NULL REFERENCES pgagent.pga_schedule (jscid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jexdate              date                NULL,
-jextime              time                NULL
-)
-WITHOUT OIDS;
-CREATE INDEX pga_exception_jexscid ON pgagent.pga_exception (jexscid);
-CREATE UNIQUE INDEX pga_exception_datetime ON pgagent.pga_exception (jexdate, jextime);
-COMMENT ON TABLE pgagent.pga_schedule IS 'Job schedule exceptions';
-
-
-
-CREATE TABLE pgagent.pga_joblog (
-jlgid                serial               NOT NULL PRIMARY KEY,
-jlgjobid             int4                 NOT NULL REFERENCES pgagent.pga_job (jobid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jlgstatus            char                 NOT NULL CHECK (jlgstatus IN ('r', 's', 'f', 'i', 'd')) DEFAULT 'r', -- running, success, failed, internal failure, aborted
-jlgstart             timestamptz          NOT NULL DEFAULT current_timestamp,
-jlgduration          interval             NULL
-) WITHOUT OIDS;
-CREATE INDEX pga_joblog_jobid ON pgagent.pga_joblog(jlgjobid);
-COMMENT ON TABLE pgagent.pga_joblog IS 'Job run logs.';
-COMMENT ON COLUMN pgagent.pga_joblog.jlgstatus IS 'Status of job: r=running, s=successfully finished, f=failed, i=no steps to execute, d=aborted';
-
-
-
-CREATE TABLE pgagent.pga_jobsteplog (
-jslid                serial               NOT NULL PRIMARY KEY,
-jsljlgid             int4                 NOT NULL REFERENCES pgagent.pga_joblog (jlgid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jsljstid             int4                 NOT NULL REFERENCES pgagent.pga_jobstep (jstid) ON DELETE CASCADE ON UPDATE RESTRICT,
-jslstatus            char                 NOT NULL CHECK (jslstatus IN ('r', 's', 'i', 'f', 'd')) DEFAULT 'r', -- running, success, ignored, failed, aborted
-jslresult            int4                 NULL,
-jslstart             timestamptz          NOT NULL DEFAULT current_timestamp,
-jslduration          interval             NULL,
-jsloutput            text
-) WITHOUT OIDS;
-CREATE INDEX pga_jobsteplog_jslid ON pgagent.pga_jobsteplog(jsljlgid);
-COMMENT ON TABLE pgagent.pga_jobsteplog IS 'Job step run logs.';
-COMMENT ON COLUMN pgagent.pga_jobsteplog.jslstatus IS 'Status of job step: r=running, s=successfully finished,  f=failed stopping job, i=ignored failure, d=aborted';
-COMMENT ON COLUMN pgagent.pga_jobsteplog.jslresult IS 'Return code of job step';
+SELECT pg_catalog.pg_extension_config_dump('pga_jobagent', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_jobclass', $$WHERE jclname NOT IN ('Routine Maintenance', 'Data Import', 'Data Export', 'Data Summarisation', 'Miscellaneous')$$);
+SELECT pg_catalog.pg_extension_config_dump('pga_job', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_jobstep', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_schedule', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_exception', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_joblog', '');
+SELECT pg_catalog.pg_extension_config_dump('pga_jobsteplog', '');
 
 CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
 BEGIN
@@ -152,7 +50,6 @@ BEGIN
     RETURN 4;
 END;
 ' LANGUAGE 'plpgsql' VOLATILE;
-
 
 CREATE OR REPLACE FUNCTION pgagent.pga_next_schedule(int4, timestamptz, timestamptz, _bool, _bool, _bool, _bool, _bool) RETURNS timestamptz AS '
 DECLARE
@@ -527,140 +424,5 @@ BEGIN
     RETURN nextrun;
 END;
 ' LANGUAGE 'plpgsql' VOLATILE;
+
 COMMENT ON FUNCTION pgagent.pga_next_schedule(int4, timestamptz, timestamptz, _bool, _bool, _bool, _bool, _bool) IS 'Calculates the next runtime for a given schedule';
-
-
-
---
--- Test code
---
--- SELECT pgagent.pga_next_schedule(
---     2, -- Schedule ID
---     '2005-01-01 00:00:00', -- Start date
---     '2006-10-01 00:00:00', -- End date
---     '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}', -- Minutes
---     '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}', -- Hours
---     '{f,f,f,f,f,f,f}', -- Weekdays
---     '{f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f}', -- Monthdays
---     '{f,f,f,f,f,f,f,f,f,f,f,f}' -- Months
--- );
-
-
-
-CREATE OR REPLACE FUNCTION pgagent.pga_is_leap_year(int2) RETURNS bool AS '
-BEGIN
-    IF $1 % 4 != 0 THEN
-        RETURN FALSE;
-    END IF;
-
-    IF $1 % 100 != 0 THEN
-        RETURN TRUE;
-    END IF;
-
-    RETURN $1 % 400 = 0;
-END;
-' LANGUAGE 'plpgsql' IMMUTABLE;
-COMMENT ON FUNCTION pgagent.pga_is_leap_year(int2) IS 'Returns TRUE if $1 is a leap year';
-
-
-CREATE OR REPLACE FUNCTION pgagent.pga_job_trigger()
-  RETURNS "trigger" AS
-'
-BEGIN
-    IF NEW.jobenabled THEN
-        IF NEW.jobnextrun IS NULL THEN
-             SELECT INTO NEW.jobnextrun
-                    MIN(pgagent.pga_next_schedule(jscid, jscstart, jscend, jscminutes, jschours, jscweekdays, jscmonthdays, jscmonths))
-               FROM pgagent.pga_schedule
-              WHERE jscenabled AND jscjobid=OLD.jobid;
-        END IF;
-    ELSE
-        NEW.jobnextrun := NULL;
-    END IF;
-    RETURN NEW;
-END;
-'
-  LANGUAGE 'plpgsql' VOLATILE;
-COMMENT ON FUNCTION pgagent.pga_job_trigger() IS 'Update the job''s next run time.';
-
-CREATE TRIGGER pga_job_trigger BEFORE UPDATE
-  ON pgagent.pga_job FOR EACH ROW
-  EXECUTE PROCEDURE pgagent.pga_job_trigger();
-COMMENT ON TRIGGER pga_job_trigger ON pgagent.pga_job IS 'Update the job''s next run time.';
-
-
-CREATE OR REPLACE FUNCTION pgagent.pga_schedule_trigger() RETURNS trigger AS '
-BEGIN
-    IF TG_OP = ''DELETE'' THEN
-        -- update pga_job from remaining schedules
-        -- the actual calculation of jobnextrun will be performed in the trigger
-        UPDATE pgagent.pga_job
-           SET jobnextrun = NULL
-         WHERE jobenabled AND jobid=OLD.jscjobid;
-        RETURN OLD;
-    ELSE
-        UPDATE pgagent.pga_job
-           SET jobnextrun = NULL
-         WHERE jobenabled AND jobid=NEW.jscjobid;
-        RETURN NEW;
-    END IF;
-END;
-' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION pgagent.pga_schedule_trigger() IS 'Update the job''s next run time whenever a schedule changes';
-
-
-
-CREATE TRIGGER pga_schedule_trigger AFTER INSERT OR UPDATE OR DELETE
-   ON pgagent.pga_schedule FOR EACH ROW
-   EXECUTE PROCEDURE pgagent.pga_schedule_trigger();
-COMMENT ON TRIGGER pga_schedule_trigger ON pgagent.pga_schedule IS 'Update the job''s next run time whenever a schedule changes';
-
-
-CREATE OR REPLACE FUNCTION pgagent.pga_exception_trigger() RETURNS "trigger" AS '
-DECLARE
-
-    v_jobid int4 := 0;
-
-BEGIN
-
-     IF TG_OP = ''DELETE'' THEN
-
-        SELECT INTO v_jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = OLD.jexscid;
-
-        -- update pga_job from remaining schedules
-        -- the actual calculation of jobnextrun will be performed in the trigger
-        UPDATE pgagent.pga_job
-           SET jobnextrun = NULL
-         WHERE jobenabled AND jobid = v_jobid;
-        RETURN OLD;
-    ELSE
-
-        SELECT INTO v_jobid jscjobid FROM pgagent.pga_schedule WHERE jscid = NEW.jexscid;
-
-        UPDATE pgagent.pga_job
-           SET jobnextrun = NULL
-         WHERE jobenabled AND jobid = v_jobid;
-        RETURN NEW;
-    END IF;
-END;
-' LANGUAGE 'plpgsql' VOLATILE;
-COMMENT ON FUNCTION pgagent.pga_exception_trigger() IS 'Update the job''s next run time whenever an exception changes';
-
-
-
-CREATE TRIGGER pga_exception_trigger AFTER INSERT OR UPDATE OR DELETE
-  ON pgagent.pga_exception FOR EACH ROW
-  EXECUTE PROCEDURE pgagent.pga_exception_trigger();
-COMMENT ON TRIGGER pga_exception_trigger ON pgagent.pga_exception IS 'Update the job''s next run time whenever an exception changes';
-
--- Extension dump support.
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobagent', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobclass', $$WHERE jclname NOT IN ('Routine Maintenance', 'Data Import', 'Data Export', 'Data Summarisation', 'Miscellaneous')$$);
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_job', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobstep', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_schedule', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_exception', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_joblog', '');
--- EXT SELECT pg_catalog.pg_extension_config_dump('pga_jobsteplog', '');
-
-COMMIT TRANSACTION;

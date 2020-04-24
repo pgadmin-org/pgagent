@@ -4,7 +4,7 @@
 // Copyright (C) 2002 - 2020 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
-// pgagent--4.0--4.1.sql - Upgrade the pgAgent schema to 4.1
+// pgagent--4.1--4.2.sql - Upgrade the pgAgent schema to 4.2
 //
 */
 
@@ -246,7 +246,7 @@ BEGIN
             IF minutetweak = TRUE THEN
         d := 1;
             ELSE
-        d := date_part(''YEAR'', runafter)::int2;
+        d := date_part(''MINUTE'', runafter)::int2;
             END IF;
             FOR i IN d .. 60 LOOP
                 IF jscminutes[i] = TRUE THEN

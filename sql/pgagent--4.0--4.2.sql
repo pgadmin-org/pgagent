@@ -4,19 +4,11 @@
 // Copyright (C) 2002 - 2020 The pgAdmin Development Team
 // This software is released under the PostgreSQL Licence
 //
-// pgagent--3.4--4.1.sql - Upgrade the pgAgent schema to 4.1
+// pgagent--4.0--4.2.sql - Upgrade the pgAgent schema to 4.2
 //
 */
 
 \echo Use "CREATE EXTENSION pgagent UPDATE" to load this file. \quit
-
-CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
-BEGIN
-    -- RETURNS PGAGENT MAJOR VERSION
-    -- WE WILL CHANGE THE MAJOR VERSION, ONLY IF THERE IS A SCHEMA CHANGE
-    RETURN 4;
-END;
-' LANGUAGE 'plpgsql' VOLATILE;
 
 CREATE OR REPLACE FUNCTION pgagent.pga_next_schedule(int4, timestamptz, timestamptz, _bool, _bool, _bool, _bool, _bool) RETURNS timestamptz AS '
 DECLARE
@@ -254,7 +246,7 @@ BEGIN
             IF minutetweak = TRUE THEN
         d := 1;
             ELSE
-        d := date_part(''YEAR'', runafter)::int2;
+        d := date_part(''MINUTE'', runafter)::int2;
             END IF;
             FOR i IN d .. 60 LOOP
                 IF jscminutes[i] = TRUE THEN
