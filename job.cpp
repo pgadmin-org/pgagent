@@ -150,15 +150,16 @@ int Job::Execute()
 				LogMessage((L"Executing batch step" + stepid + L"(part of job " + jobid + L")"), LOG_DEBUG);
 
 				// Get a temporary filename, then reuse it to create an empty directory.
-                                std::wstring wTmpDir = getTemporaryDirectoryPath();
+				std::wstring wTmpDir = getTemporaryDirectoryPath();
 				std::string sDirectory(wTmpDir.begin(), wTmpDir.end());
-				std::string sFilesName = "";
-				std::string prefix = "pga_";
-				int last_n_char = 7;
+				std::string sStepid(stepid.begin(), stepid.end());
+				std::string sJobid(jobid.begin(), jobid.end());
+				std::string sFilesName = std::string("");
+				std::string prefix = std::string("pga_");
 
-                                // Genrate random string of 6 characters long to make unique dir name
-                                std::string result = generateRandomString(7);
-				sFilesName = prefix + result;
+				// Generate random string of 6 characters long to make unique dir name
+				std::string result = generateRandomString(7);
+				sFilesName = prefix + sJobid + std::string("_") + sStepid + std::string("_") + result;
 #if BOOST_OS_WINDOWS
 				std::string sModel = (boost::format("%s\\%s") % sDirectory % sFilesName).str();
 #else
