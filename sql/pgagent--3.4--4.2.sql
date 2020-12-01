@@ -8,7 +8,7 @@
 //
 */
 
-\echo Use "CREATE EXTENSION pgagent UPDATE" to load this file. \quit
+\echo Use "ALTER EXTENSION pgagent UPDATE" to load this file. \quit
 
 CREATE OR REPLACE FUNCTION pgagent.pgagent_schema_version() RETURNS int2 AS '
 BEGIN
