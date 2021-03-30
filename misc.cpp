@@ -143,22 +143,66 @@ std::wstring NumToStr(const long l)
 }
 
 // This function is used to convert char* to std::wstring.
-std::wstring CharToWString(const char* cstr)
+std::wstring CharToWString(const char *cstr)
 {
-	std::string s = std::string(cstr);
-	std::wstring wsTmp(s.begin(), s.end());
-	return wsTmp;
+	if (cstr != NULL)
+	{
+		size_t wc_cnt = mbstowcs(NULL, cstr, 0);
+
+		if (wc_cnt == (size_t) -1) {
+			return std::wstring();
+		}
+
+		wchar_t *wcs = new wchar_t[wc_cnt + 1];
+		if (wcs == NULL) {
+			return std::wstring();
+		}
+
+		if (mbstowcs(wcs, cstr, wc_cnt + 1) == (size_t) -1) {
+			delete [] wcs;
+			return std::wstring();
+		}
+
+		std::wstring tmp(&wcs[0], &wcs[wc_cnt]);
+		delete [] wcs;
+
+		return tmp;
+	}
+	return std::wstring();
 }
 
 // This function is used to convert std::wstring to char *.
-char * WStringToChar(const std::wstring &wstr)
+char *WStringToChar(const std::wstring &wstr)
 {
 	const wchar_t *wchar_str = wstr.c_str();
-	int wstr_length = wcslen(wchar_str);
-	char *dst = new char[wstr_length + 10];
-	memset(dst, 0x00, (wstr_length + 10));
-	wcstombs(dst, wchar_str, wstr_length);
-	return dst;
+
+	int mb_len = wcstombs(NULL, wchar_str, 0);
+
+	if ((size_t)mb_len == (size_t) -1) {
+		return NULL;
+	}
+
+	char *mbs = new char[mb_len + 1];
+	if (mbs == NULL) {
+		return NULL;
+	}
+
+	memset(mbs, 0, mb_len + 1);
+
+#ifdef __WIN32__
+	size_t charsConverted = 0;
+	if (wcstombs_s(&charsConverted, mbs, mb_len + 1, wchar_str, mb_len) != 0) {
+		delete [] mbs;
+		return NULL;
+	}
+#else
+	if (wcstombs(mbs, wchar_str, mb_len + 1) == (size_t) -1) {
+		delete [] mbs;
+		return NULL;
+	}
+
+#endif
+	return mbs;
 }
 
 // Below function will generate random string of given character.

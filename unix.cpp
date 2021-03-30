@@ -155,6 +155,8 @@ static void daemonize(void)
 
 int main(int argc, char **argv)
 {
+	setlocale(LC_ALL, "");
+
 	std::wstring executable;
 	executable.assign(CharToWString(argv[0]));
 
