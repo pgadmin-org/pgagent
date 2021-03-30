@@ -19,8 +19,8 @@ aaaPGAEVENT      ICON    DISCARDABLE     "../include/pgagent.ico"
 
 
 VS_VERSION_INFO VERSIONINFO 
-FILEVERSION    4,2,0,0
-PRODUCTVERSION 4,2,0,0
+FILEVERSION    4,2,1,0
+PRODUCTVERSION 4,2,1,0
 FILEOS         VOS__WINDOWS32
 FILETYPE       VFT_APP
 BEGIN
@@ -28,15 +28,15 @@ BEGIN
     BEGIN
         BLOCK "040904E4"
         BEGIN 
-            VALUE "FileVersion",     "4.2.0", "\0"
-            VALUE "File Version",    "4.2.0", "\0"
+            VALUE "FileVersion",     "4.2.1", "\0"
+            VALUE "File Version",    "4.2.1", "\0"
             VALUE "FileDescription", "pgaevent - pgAgent Event Log Message DLL", "\0"
             VALUE "LegalCopyright",  "\251 2002 - 2020, The pgAdmin Development Team", "\0"
             VALUE "LegalTrademarks", "This software is released under the PostgreSQL Licence.", "\0"
             VALUE "InternalName",    "pgaevent", "\0"
             VALUE "OriginalFilename","pgaevent.dll", "\0"
             VALUE "ProductName",     "pgAgent", "\0"
-            VALUE "ProductVersion",  "4.2.0", "\0"
+            VALUE "ProductVersion",  "4.2.1", "\0"
         END
     END
     BLOCK "VarFileInfo" 
