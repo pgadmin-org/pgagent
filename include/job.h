@@ -18,30 +18,30 @@
 class Job
 {
 public:
-	Job(DBconn *conn, const std::wstring &jid);
+	Job(DBconn *conn, const std::string &jid);
 	~Job();
 
 	int Execute();
 	bool Runnable()
 	{
-		return status == L"r";
+		return m_status == "r";
 	}
 
 protected:
-	DBconn *threadConn;
-	std::wstring jobid, logid;
-	std::wstring status;
+	DBconn      *m_threadConn;
+	std::string  m_jobid, m_logid;
+	std::string  m_status;
 };
 
 class JobThread
 {
 public:
-	JobThread(const std::wstring &jid);
+	JobThread(const std::string &jid);
 	~JobThread();
 	void operator()();
 
 private:
-	std::wstring  m_jobid;
+	std::string  m_jobid;
 };
 
 #endif // JOB_H

@@ -12,6 +12,8 @@
 #include "pgAgent.h"
 #include "connection.h"
 
+#include <boost/locale/encoding_utf.hpp>
+
 #if !BOOST_OS_WINDOWS
 #include <unistd.h>
 #include <stdlib.h>
@@ -20,29 +22,27 @@
 #define APPVERSION_STR PGAGENT_VERSION
 
 // In unix.c or win32.c
-void usage(const std::wstring &executable);
+void usage(const std::string &executable);
 
-std::wstring getArg(int &argc, char **&argv)
+std::string getArg(int &argc, char **&argv)
 {
-	std::wstring s;
+	std::string res;
+
 	if (argv[0][2])
-		s = CharToWString(argv[0] + 2);
-	else
+		return (argv[0] + 2);
+
+	if (argc >= 1)
 	{
-		if (argc >= 1)
-		{
-			argc--;
-			argv++;
-			s = CharToWString(argv[0]);
-		}
-		else
-		{
-			// very bad!
-			LogMessage(L"Invalid command line argument", LOG_ERROR);
-		}
+		argc--;
+		argv++;
+
+		return argv[0];
 	}
 
-	return s;
+	// very bad!
+	LogMessage("Invalid command line argument", LOG_ERROR);
+
+	return res;
 }
 
 void printVersion()
@@ -51,7 +51,7 @@ void printVersion()
 	printf("Version: %s\n", APPVERSION_STR);
 }
 
-void setOptions(int argc, char **argv, const std::wstring &executable)
+void setOptions(int argc, char **argv, const std::string &executable)
 {
 	while (argc-- > 0)
 	{
@@ -106,9 +106,9 @@ void setOptions(int argc, char **argv, const std::wstring &executable)
 		}
 		else
 		{
-			if (connectString != L"")
-				connectString += L" ";
-			connectString = connectString + CharToWString(*argv);
+			if (!connectString.empty())
+				connectString += " ";
+			connectString += *argv;
 			if (**argv == '"')
 				connectString = connectString.substr(1, connectString.length() - 2);
 		}
@@ -136,141 +136,97 @@ void WaitAWhile(const bool waitLong)
 	}
 }
 
-std::wstring NumToStr(const long l)
+std::string NumToStr(const long l)
 {
-	std::wstring buf(boost::lexical_cast<std::wstring>(l));
-	return buf;
+	return boost::lexical_cast<std::string>(l);
 }
 
-// This function is used to convert char* to std::wstring.
-std::wstring CharToWString(const char *cstr)
+#if BOOST_OS_WINDOWS
+// This function is used to convert const std::str to std::wstring.
+std::wstring s2ws(const std::string &str)
 {
-	if (cstr != NULL)
-	{
-		size_t wc_cnt = mbstowcs(NULL, cstr, 0);
-
-		if (wc_cnt == (size_t) -1) {
-			return std::wstring();
-		}
-
-		wchar_t *wcs = new wchar_t[wc_cnt + 1];
-		if (wcs == NULL) {
-			return std::wstring();
-		}
-
-		if (mbstowcs(wcs, cstr, wc_cnt + 1) == (size_t) -1) {
-			delete [] wcs;
-			return std::wstring();
-		}
-
-		std::wstring tmp(&wcs[0], &wcs[wc_cnt]);
-		delete [] wcs;
-
-		return tmp;
-	}
-	return std::wstring();
+	using boost::locale::conv::utf_to_utf;
+	return utf_to_utf<wchar_t>(str.c_str(), str.c_str() + str.size());
 }
 
-// This function is used to convert std::wstring to char *.
-char *WStringToChar(const std::wstring &wstr)
+// This function is used to convert std::wstring to std::str
+std::string ws2s(const std::wstring &wstr)
 {
-	const wchar_t *wchar_str = wstr.c_str();
-
-	int mb_len = wcstombs(NULL, wchar_str, 0);
-
-	if ((size_t)mb_len == (size_t) -1) {
-		return NULL;
-	}
-
-	char *mbs = new char[mb_len + 1];
-	if (mbs == NULL) {
-		return NULL;
-	}
-
-	memset(mbs, 0, mb_len + 1);
-
-#ifdef __WIN32__
-	size_t charsConverted = 0;
-	if (wcstombs_s(&charsConverted, mbs, mb_len + 1, wchar_str, mb_len) != 0) {
-		delete [] mbs;
-		return NULL;
-	}
-#else
-	if (wcstombs(mbs, wchar_str, mb_len + 1) == (size_t) -1) {
-		delete [] mbs;
-		return NULL;
-	}
-
+	using boost::locale::conv::utf_to_utf;
+	return utf_to_utf<char>(wstr.c_str(), wstr.c_str() + wstr.size());
+}
 #endif
-	return mbs;
-}
 
 // Below function will generate random string of given character.
 std::string generateRandomString(size_t length)
 {
-    char *str = new char[length];
-    size_t i = 0;
-    int r;
+	char *str = new char[length];
+	size_t i = 0;
+	int r;
 
-    str[length - 1] = '\0';
-    srand(time(NULL));
+	str[length - 1] = '\0';
+	srand(time(NULL));
 
-    for(i = 0; i < length - 1; ++i)
-    {
-        for(;;)
-        {
-            // interval between 'A' and 'z'
-            r = rand() % 57 + 65;
-            if((r >= 65 && r <= 90) || (r >= 97 && r <= 122))
-            {
-                str[i] = (char)r;
-                break;
-            }
-        }
-    }
+	for(i = 0; i < length - 1; ++i)
+	{
+		for(;;)
+		{
+			// interval between 'A' and 'z'
+			r = rand() % 57 + 65;
+			if((r >= 65 && r <= 90) || (r >= 97 && r <= 122))
+			{
+				str[i] = (char)r;
+				break;
+			}
+		}
+	}
 
-    std::string result(str);
+	std::string result(str);
 
-    if (str != NULL)
-    {
-        delete []str;
-        str = NULL;
-    }
+	if (str != NULL)
+	{
+		delete []str;
+		str = NULL;
+	}
 
-    return result;
+	return result;
 }
 
-std::wstring getTemporaryDirectoryPath()
+std::string getTemporaryDirectoryPath()
 {
 
 #if BOOST_OS_WINDOWS
-    std::wstring tmp_dir = L"";
+    std::wstring tmp_dir;
+
     wchar_t wcharPath[MAX_PATH];
+
     if (GetTempPathW(MAX_PATH, wcharPath))
+		{
         tmp_dir = wcharPath;
+
+				return ws2s(tmp_dir);
+		}
+    return "";
 #else
     // Read this environment variable (TMPDIR, TMP, TEMP, TEMPDIR) and if not found then use "/tmp"
-    std::wstring tmp_dir = L"/tmp";
-    const char *s = getenv("TMPDIR");
+    std::string tmp_dir = "/tmp";
+    const char *s_tmp = getenv("TMPDIR");
 
-    if (s != NULL)
-        tmp_dir = CharToWString(s);
-    else
-    {
-        const char *s1 = getenv("TMP");
-        if (s1 != NULL)
-            tmp_dir = CharToWString(s1);
-        else {
-            const char *s2 = getenv("TEMP");
-            if (s2 != NULL)
-                tmp_dir = CharToWString(s2);
-            else {
-                const char *s3 = getenv("TEMPDIR");
-                if (s3 != NULL)
-                    tmp_dir = CharToWString(s2);
-            }
-        }
-    }
+    if (s_tmp != NULL)
+        return s_tmp;
+
+		s_tmp = getenv("TMP");
+		if (s_tmp != NULL)
+			return s_tmp;
+
+		s_tmp = getenv("TEMP");
+		if (s_tmp != NULL)
+			return s_tmp;
+
+		s_tmp = getenv("TEMPDIR");
+		if (s_tmp != NULL)
+			return s_tmp;
+
+		return tmp_dir;
 #endif
-    return tmp_dir;
 }

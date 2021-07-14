@@ -36,15 +36,15 @@
 #include "connection.h"
 #include "job.h"
 
-extern long longWait;
-extern long shortWait;
-extern long minLogLevel;
-extern std::wstring connectString;
-extern std::wstring backendPid;
+extern long        longWait;
+extern long        shortWait;
+extern long        minLogLevel;
+extern std::string connectString;
+extern std::string backendPid;
 
 #if !BOOST_OS_WINDOWS
-extern bool runInForeground;
-extern std::wstring logFile;
+extern bool        runInForeground;
+extern std::string logFile;
 #endif
 
 // Log levels
@@ -61,7 +61,7 @@ enum
 };
 
 // Prototypes
-void LogMessage(const std::wstring &msg, const int &level);
+void LogMessage(const std::string &msg, const int &level);
 void MainLoop();
 
 #if BOOST_OS_WINDOWS

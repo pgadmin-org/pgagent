@@ -13,16 +13,17 @@
 #ifndef MISC_H
 #define MISC_H
 
-
-void WaitAWhile(const bool waitLong = false);
-void setOptions(int argc, char **argv, const std::wstring &executable);
-std::wstring getArg(int &argc, char **&argv);
-std::wstring NumToStr(const long l);
-void printVersion();
-std::wstring CharToWString(const char* cstr);
-char* WStringToChar(const std::wstring &wstr);
-std::string generateRandomString(size_t length);
-std::wstring getTemporaryDirectoryPath();
+void          WaitAWhile(const bool waitLong = false);
+void          setOptions(int argc, char **argv, const std::string &executable);
+std::string   getArg(int &argc, char **&argv);
+std::string   NumToStr(const long l);
+void          printVersion();
+#if BOOST_OS_WINDOWS
+std::wstring  s2ws(const std::string &str);
+std::string   ws2s(const std::wstring &wstr);
+#endif
+std::string   generateRandomString(size_t length);
+std::string   getTemporaryDirectoryPath();
 
 class MutexLocker
 {

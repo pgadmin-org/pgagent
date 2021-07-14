@@ -20,49 +20,52 @@ class DBresult;
 class CONNinfo
 {
 public:
-    bool Set(const std::wstring& connStr);
-	const std::wstring Get(const std::wstring &dbName=L"") const;
-    const std::wstring& GetError() const { return m_error; }
+	bool Set(const std::string& connStr);
+	const std::string Get(const std::string &dbName="") const;
+	const std::string& GetError() const { return m_error; }
 
-	static const std::wstring Parse(
-			const std::wstring& connStr, std::wstring *error,
-			std::wstring *dbName, bool forLogging=false
-		);
+	static const std::string Parse(
+		const std::string& connStr, std::string *error,
+		std::string *dbName, bool forLogging=false
+	);
 
 	operator bool() const { return m_connStr.empty(); }
 
 private:
-    std::wstring  m_connStr;
-    std::wstring  m_dbName;
-    std::wstring  m_error;
+	std::string  m_connStr;
+	std::string  m_dbName;
+	std::string  m_error;
 };
 
 class DBconn
 {
 protected:
-	DBconn(const std::wstring& connStr);
+	DBconn(const std::string& connStr);
 	~DBconn();
 
 public:
-	std::wstring qtDbString(const std::wstring &value);
+	static DBconn     *Get(const std::string &connStr="", const std::string &db="");
+	static DBconn     *InitConnection(const std::string &connectString);
+	static void        ClearConnections(bool allIncludingPrimary = false);
 
-	bool BackendMinimumVersion(int major, int minor);
+	std::string        qtDbString(const std::string &value);
 
-	static DBconn *Get(const std::wstring &connStr=L"", const std::wstring &db=L"");
-	static DBconn *InitConnection(const std::wstring &connectString);
+	bool               BackendMinimumVersion(int major, int minor);
+	std::string        GetLastError();
+	operator           bool() const { return m_conn != NULL; }
+	DBresult          *Execute(const std::string &query);
+	std::string        ExecuteScalar(const std::string &query);
+	int                ExecuteVoid(const std::string &query);
+	void               Return();
 
-	static void ClearConnections(bool allIncludingPrimary = false);
+	const std::string &DebugConnectionStr() const;
 
-	std::wstring GetLastError();
-
-    operator bool() const { return m_conn != NULL; }
-
-	bool LastCommandOk()
+	bool               LastCommandOk()
 	{
 		return IsCommandOk((ExecStatusType)m_lastResult);
 	}
 
-	bool IsCommandOk(ExecStatusType ret)
+	bool               IsCommandOk(ExecStatusType ret)
 	{
 		switch (ret)
 		{
@@ -79,35 +82,28 @@ public:
 		};
 	}
 
-	void SetLastResult(int res)
+	void               SetLastResult(int res)
 	{
 		m_lastResult = res;
 	}
 
-	int GetLastResult()
+	int                GetLastResult()
 	{
 		return m_lastResult;
 	}
 
-	DBresult *Execute(const std::wstring &query);
-	std::wstring ExecuteScalar(const std::wstring &query);
-	int ExecuteVoid(const std::wstring &query);
-	void Return();
-
-    const std::wstring &DebugConnectionStr() const;
-
 private:
-	bool Connect(const std::wstring &connectString);
+	bool Connect(const std::string &connectString);
 
-	int              m_minorVersion,
-                     m_majorVersion;
+	int  m_minorVersion,
+       m_majorVersion;
 
 protected:
 	static CONNinfo  ms_basicConnInfo;
 	static DBconn   *ms_primaryConn;
 
-	std::wstring     m_lastError;
-	std::wstring     m_connStr;
+	std::string      m_lastError;
+	std::string      m_connStr;
 
 	PGconn          *m_conn;
 	DBconn          *m_next;
@@ -125,35 +121,35 @@ protected:
 class DBresult
 {
 protected:
-	DBresult(DBconn *conn, const std::wstring &query);
+	DBresult(DBconn *conn, const std::string &query);
 
 public:
 	~DBresult();
 
-	std::wstring GetString(int col) const;
-	std::wstring GetString(const std::wstring &colname) const;
+	std::string GetString(int col) const;
+	std::string GetString(const std::string &colname) const;
 
-	bool IsValid() const
+	bool        IsValid() const
 	{
 		return m_result != NULL;
 	}
-	bool HasData() const
+	bool        HasData() const
 	{
 		return m_currentRow < m_maxRows;
 	}
-	void MoveNext()
+	void        MoveNext()
 	{
 		if (m_currentRow < m_maxRows) m_currentRow++;
 	}
 
-	long RowsAffected() const
+	long        RowsAffected() const
 	{
 		return atol(PQcmdTuples(m_result));
 	}
 
 protected:
 	PGresult *m_result;
-	int m_currentRow, m_maxRows;
+	int       m_currentRow, m_maxRows;
 
 	friend class DBconn;
 };

@@ -19,32 +19,34 @@
 #include <sys/stat.h>
 #endif
 
-Job::Job(DBconn *conn, const std::wstring &jid)
+Job::Job(DBconn *conn, const std::string &jid)
 {
-	threadConn = conn;
-	jobid = jid;
-	status = L"";
+	m_threadConn = conn;
+	m_jobid = jid;
+	m_status = "";
 
-	LogMessage((L"Starting job: " + jobid), LOG_DEBUG);
+	LogMessage("Starting job: " + m_jobid, LOG_DEBUG);
 
-	int rc = threadConn->ExecuteVoid(
-		L"UPDATE pgagent.pga_job SET jobagentid=" + backendPid + L", joblastrun=now() " +
-		L" WHERE jobagentid IS NULL AND jobid=" + jobid);
+	int rc = m_threadConn->ExecuteVoid(
+		"UPDATE pgagent.pga_job SET jobagentid=" + backendPid +
+		", joblastrun=now() WHERE jobagentid IS NULL AND jobid=" + m_jobid
+	);
 
 	if (rc == 1)
 	{
-		DBresultPtr id = threadConn->Execute(
-			L"SELECT nextval('pgagent.pga_joblog_jlgid_seq') AS id");
+		DBresultPtr id = m_threadConn->Execute(
+			"SELECT nextval('pgagent.pga_joblog_jlgid_seq') AS id"
+		);
 		if (id)
 		{
-			logid = id->GetString(L"id");
+			m_logid = id->GetString("id");
 
-			DBresultPtr res = threadConn->Execute(
-				L"INSERT INTO pgagent.pga_joblog(jlgid, jlgjobid, jlgstatus) "
-				L"VALUES (" + logid + L", " + jobid + L", 'r')");
+			DBresultPtr res = m_threadConn->Execute(
+				"INSERT INTO pgagent.pga_joblog(jlgid, jlgjobid, jlgstatus) "
+				"VALUES (" + m_logid + ", " + m_jobid + ", 'r')");
 			if (res)
 			{
-				status = L"r";
+				m_status = "r";
 			}
 		}
 	}
@@ -53,21 +55,21 @@ Job::Job(DBconn *conn, const std::wstring &jid)
 
 Job::~Job()
 {
-	if (status != L"")
+	if (!m_status.empty())
 	{
-		threadConn->ExecuteVoid(
-			L"UPDATE pgagent.pga_joblog "
-			L"   SET jlgstatus='" + status + L"', jlgduration=now() - jlgstart " +
-			L" WHERE jlgid=" + logid + L";\n" +
+		m_threadConn->ExecuteVoid(
+			"UPDATE pgagent.pga_joblog "
+			"   SET jlgstatus='" + m_status + "', jlgduration=now() - jlgstart " +
+			" WHERE jlgid=" + m_logid + ";\n" +
 
-			L"UPDATE pgagent.pga_job " +
-			L"   SET jobagentid=NULL, jobnextrun=NULL " +
-			L" WHERE jobid=" + jobid
-			);
+			"UPDATE pgagent.pga_job " +
+			"   SET jobagentid=NULL, jobnextrun=NULL " +
+			" WHERE jobid=" + m_jobid
+		);
 	}
-	threadConn->Return();
+	m_threadConn->Return();
 
-	LogMessage((L"Completed job: " + jobid), LOG_DEBUG);
+	LogMessage("Completed job: " + m_jobid, LOG_DEBUG);
 }
 
 
@@ -75,69 +77,73 @@ int Job::Execute()
 {
 	int rc = 0;
 	bool succeeded = false;
-	DBresultPtr steps = threadConn->Execute(
-		L"SELECT * "
-		L"  FROM pgagent.pga_jobstep "
-		L" WHERE jstenabled "
-		L"   AND jstjobid=" + jobid +
-		L" ORDER BY jstname, jstid");
+	DBresultPtr steps = m_threadConn->Execute(
+		"SELECT * "
+		"  FROM pgagent.pga_jobstep "
+		" WHERE jstenabled "
+		"   AND jstjobid=" + m_jobid +
+		" ORDER BY jstname, jstid");
 
 	if (!steps)
 	{
-		status = L"i";
+		m_status = "i";
 		return -1;
 	}
 
 	while (steps->HasData())
 	{
-		DBconn *stepConn;
-		std::wstring jslid, stepid, jpecode, output;
+		DBconn      *stepConn = nullptr;
+		std::string  jslid, stepid, jpecode, output;
 
-		stepid = steps->GetString(L"jstid");
+		stepid = steps->GetString("jstid");
 
-		DBresultPtr id = threadConn->Execute(
-			L"SELECT nextval('pgagent.pga_jobsteplog_jslid_seq') AS id");
+		DBresultPtr id = m_threadConn->Execute(
+			"SELECT nextval('pgagent.pga_jobsteplog_jslid_seq') AS id"
+		);
+
 		if (id)
 		{
-			jslid = id->GetString(L"id");
-			DBresultPtr res = threadConn->Execute(
-				L"INSERT INTO pgagent.pga_jobsteplog(jslid, jsljlgid, jsljstid, jslstatus) "
-				L"SELECT " + jslid + L", " + logid + L", " + stepid + L", 'r'" +
-				L"  FROM pgagent.pga_jobstep WHERE jstid=" + stepid);
+			jslid = id->GetString("id");
+			DBresultPtr res = m_threadConn->Execute(
+				"INSERT INTO pgagent.pga_jobsteplog(jslid, jsljlgid, jsljstid, jslstatus) "
+				"SELECT " + jslid + ", " + m_logid + ", " + stepid + ", 'r'" +
+				"  FROM pgagent.pga_jobstep WHERE jstid=" + stepid);
 
 			if (res)
-			{
 				rc = res->RowsAffected();
-			}
 			else
 				rc = -1;
 		}
 
 		if (rc != 1)
 		{
-			status = L"i";
+			m_status = "i";
 			return -1;
 		}
 
-		switch ((int)steps->GetString(L"jstkind")[0])
+		switch ((int)steps->GetString("jstkind")[0])
 		{
 			case 's':
 			{
-				std::wstring jstdbname = steps->GetString(L"jstdbname");
-				std::wstring jstconnstr = steps->GetString(L"jstconnstr");
+				std::string jstdbname = steps->GetString("jstdbname");
+				std::string jstconnstr = steps->GetString("jstconnstr");
 
 				stepConn = DBconn::Get(jstconnstr, jstdbname);
+
 				if (stepConn)
 				{
-					LogMessage((L"Executing SQL step " + stepid + L"(part of job " + jobid + L")"), LOG_DEBUG);
-					rc = stepConn->ExecuteVoid(steps->GetString(L"jstcode"));
+					LogMessage(
+						"Executing SQL step " + stepid + "(part of job " + m_jobid + ")",
+						 LOG_DEBUG
+					);
+					rc = stepConn->ExecuteVoid(steps->GetString("jstcode"));
 					succeeded = stepConn->LastCommandOk();
 					output = stepConn->GetLastError();
 					stepConn->Return();
 				}
 				else
 				{
-					output = L"Couldn't get a connection to the database!";
+					output = "Couldn't get a connection to the database!";
 					succeeded = false;
 				}
 
@@ -147,51 +153,52 @@ int Job::Execute()
 			case 'b':
 			{
 				// Batch jobs are more complex thank SQL, for obvious reasons...
-				LogMessage((L"Executing batch step" + stepid + L"(part of job " + jobid + L")"), LOG_DEBUG);
+				LogMessage(
+					"Executing batch step" + stepid + "(part of job " + m_jobid + ")",
+          LOG_DEBUG
+				);
 
 				// Get a temporary filename, then reuse it to create an empty directory.
-				std::wstring wTmpDir = getTemporaryDirectoryPath();
-				std::string sDirectory(wTmpDir.begin(), wTmpDir.end());
-				std::string sStepid(stepid.begin(), stepid.end());
-				std::string sJobid(jobid.begin(), jobid.end());
+				std::string sDirectory = getTemporaryDirectoryPath();
 				std::string sFilesName = std::string("");
 				std::string prefix = std::string("pga_");
 
 				// Generate random string of 6 characters long to make unique dir name
 				std::string result = generateRandomString(7);
-				sFilesName = prefix + sJobid + std::string("_") + sStepid + std::string("_") + result;
+				sFilesName = prefix + m_jobid + std::string("_") + stepid + std::string("_") + result;
 #if BOOST_OS_WINDOWS
 				std::string sModel = (boost::format("%s\\%s") % sDirectory % sFilesName).str();
 #else
 				std::string sModel = (boost::format("%s/%s") % sDirectory % sFilesName).str();
 #endif
-				std::string dir_name = sModel;
-				std::wstring dirname(dir_name.begin(), dir_name.end());
+				std::string dirname = sModel;
 
-				if (dirname == L"")
+				if (dirname == "")
 				{
-					output = L"Couldn't get a temporary filename!";
+					output = "Couldn't get a temporary filename!";
 					LogMessage(output, LOG_WARNING);
 					rc = -1;
 					break;
 				}
 
-				if (!boost::filesystem::create_directory(boost::filesystem::path(dir_name)))
+				if (!boost::filesystem::create_directory(boost::filesystem::path(dirname)))
 				{
-					LogMessage((L"Couldn't create temporary directory: " + dirname), LOG_WARNING);
+					LogMessage(
+						"Couldn't create temporary directory: " + dirname, LOG_WARNING
+					);
 					rc = -1;
 					break;
 				}
 
 #if BOOST_OS_WINDOWS
-				std::wstring filename = dirname + L"\\" + jobid + L"_" + stepid + L".bat";
-				std::wstring errorFile = dirname + L"\\" + jobid + L"_" + stepid + L"_error.txt";
+				std::string filename = dirname + "\\" + m_jobid + "_" + stepid + ".bat";
+				std::string errorFile = dirname + "\\" + m_jobid + "_" + stepid + "_error.txt";
 #else
-				std::wstring filename = dirname + L"/" + jobid + L"_" + stepid + L".scr";
-				std::wstring errorFile = dirname + L"/" + jobid + L"_" + stepid + L"_error.txt";
+				std::string filename = dirname + "/" + m_jobid + "_" + stepid + ".scr";
+				std::string errorFile = dirname + "/" + m_jobid + "_" + stepid + "_error.txt";
 #endif
 
-				std::wstring code = steps->GetString(L"jstcode");
+				std::string code = steps->GetString("jstcode");
 
 				// Cleanup the code. If we're on Windows, we need to make all line ends \r\n,
 				// If we're on Unix, we need \n
@@ -200,50 +207,62 @@ int Job::Execute()
 				boost::replace_all(code, "\n", "\r\n");
 #endif
 				std::ofstream out_file;
-				std::string s_code(code.begin(), code.end());
-				std::string sfilename(filename.begin(), filename.end());
-				std::string serrorFile(errorFile.begin(), errorFile.end());
 
-				out_file.open((const char *)sfilename.c_str(), std::ios::out);
+				out_file.open((const char *)filename.c_str(), std::ios::out);
+
 				if (out_file.fail())
 				{
-					LogMessage((L"Couldn't open temporary script file: " + filename), LOG_WARNING);
+					LogMessage(
+						"Couldn't open temporary script file: " + filename,
+						LOG_WARNING
+					);
+
 					if (boost::filesystem::exists(dirname))
 						boost::filesystem::remove_all(dirname);
+
 					rc = -1;
 					break;
 				}
 				else
 				{
-					out_file << s_code;
+					out_file << code;
 					out_file.close();
+
 #if !BOOST_OS_WINDOWS
 					// change file permission to 700 for executable in linux
-					int ret = chmod((const char *)sfilename.c_str(), S_IRWXU);
+					int ret = chmod((const char *)filename.c_str(), S_IRWXU);
+
 					if (ret != 0)
-						LogMessage((L"Error setting executable permission to file: " + filename), LOG_DEBUG);
+						LogMessage(
+							"Error setting executable permission to file: " + filename,
+							LOG_DEBUG
+						);
 #endif
 				}
 
-				LogMessage((L"Executing script file: " + filename), LOG_DEBUG);
+				LogMessage("Executing script file: " + filename, LOG_DEBUG);
 
 				// freopen function is used to redirect output of stream (stderr in our case)
 				// into the specified file.
-				FILE *fpError = freopen((const char *)serrorFile.c_str(), "w", stderr);
+				FILE *fpError = freopen((const char *)errorFile.c_str(), "w", stderr);
 
 				// Execute the file and capture the output
 #if BOOST_OS_WINDOWS
 				// The Windows way
 				HANDLE h_script, h_process;
-				DWORD dwRead;
-				char chBuf[4098];
+				DWORD  dwRead;
+				char   chBuf[4098];
 
-				h_script = win32_popen_r(filename.c_str(), h_process);
+				h_script = win32_popen_r(s2ws(filename).c_str(), h_process);
+
 				if (!h_script)
 				{
-					LogMessage((boost::wformat(L"Couldn't execute script: %s, GetLastError() returned %s, errno = %d") % filename.c_str() % GetLastError() % errno).str(), LOG_WARNING);
+					LogMessage((boost::format(
+						"Couldn't execute script: %s, GetLastError() returned %d, errno = %d"
+					) % filename.c_str() % GetLastError() % errno).str(), LOG_WARNING);
 					CloseHandle(h_process);
 					rc = -1;
+
 					if (fpError)
 						fclose(fpError);
 					break;
@@ -259,7 +278,7 @@ int Job::Execute()
 							break;
 
 						chBuf[dwRead] = 0;
-						output += CharToWString((const char *)chBuf);
+						output += (const char *)chBuf;
 					}
 				}
 
@@ -270,16 +289,21 @@ int Job::Execute()
 
 #else
 				// The *nix way.
-				FILE *fp_script;
-				char buf[4098];
+				FILE *fp_script = nullptr;
+				char  buf[4098];
 
-				fp_script = popen((const char *)sfilename.c_str(), "r");
+				fp_script = popen((const char *)filename.c_str(), "r");
+
 				if (!fp_script)
 				{
-					LogMessage((boost::wformat(L"Couldn't execute script: %s, errno = %d") % filename.c_str() % errno).str(), LOG_WARNING);
+					LogMessage((boost::format(
+						"Couldn't execute script: %s, errno = %d"
+					) % filename.c_str() % errno).str(), LOG_WARNING);
 					rc = -1;
+
 					if(fpError)
 						fclose(fpError);
+
 					break;
 				}
 
@@ -287,7 +311,7 @@ int Job::Execute()
 				while(!feof(fp_script))
 				{
 					if (fgets(buf, 4096, fp_script) != NULL)
-						output += CharToWString((const char *)buf);
+						output += (const char *)buf;
 				}
 
 				rc = pclose(fp_script);
@@ -300,7 +324,11 @@ int Job::Execute()
 #endif
 
 				// set success status for batch runs, be pessimistic by default
-				LogMessage((boost::wformat(L"Script return code: %d") % rc).str(), LOG_DEBUG);
+				LogMessage(
+					(boost::format("Script return code: %d") % rc).str(),
+					LOG_DEBUG
+				);
+
 				succeeded = ((rc == 0) ? true : false);
 				// If output is empty then either script did not return any output
 				// or script threw some error into stderr.
@@ -308,38 +336,42 @@ int Job::Execute()
 				if (fpError)
 				{
 					fclose(fpError);
-					FILE* fpErr = fopen((const char *)serrorFile.c_str(), "r");
+					FILE* fpErr = fopen((const char *)errorFile.c_str(), "r");
+
 					if (fpErr)
 					{
 						char buffer[4098];
-						std::wstring errorMsg = L"";
+						std::string errorMsg = "";
+
 						while (!feof(fpErr))
 						{
 							if (fgets(buffer, 4096, fpErr) != NULL)
-								errorMsg += CharToWString(buffer);
+								errorMsg += buffer;
 						}
 
-						if (errorMsg != L"") {
-							std::wstring errmsg = L"Script Error: \n" + errorMsg + L"\n",
-								LogMessage((L"Script Error: \n" + errorMsg + L"\n"), LOG_WARNING);
-							output += L"\n" + errmsg;
+						if (errorMsg != "") {
+							std::string errmsg = "Script Error: \n" + errorMsg + "\n";
+							LogMessage("Script Error: \n" + errorMsg + "\n", LOG_WARNING);
+							output += "\n" + errmsg;
 						}
 
 						fclose(fpErr);
 					}
 				}
 
-				// Delete the file/directory. If we fail, don't overwrite the script output in the log, just throw warnings.
+				// Delete the file/directory. If we fail, don't overwrite the script
+				// output in the log, just throw warnings.
 				try
 				{
-					boost::filesystem::path dir_path(dir_name);
+					boost::filesystem::path dir_path(dirname);
+
 					if (boost::filesystem::exists(dir_path))
 						boost::filesystem::remove_all(dir_path);
 				}
 				catch (boost::filesystem::filesystem_error const & e)
 				{
 					//display error message
-					LogMessage(CharToWString((const char *)e.what()), LOG_WARNING);
+					LogMessage((const char *)e.what(), LOG_WARNING);
 					break;
 				}
 
@@ -347,47 +379,47 @@ int Job::Execute()
 			}
 			default:
 			{
-				output = L"Invalid step type!";
-				status = L"i";
+				output = "Invalid step type!";
+				m_status = "i";
 				return -1;
 			}
 		}
 
-		std::wstring stepstatus;
+		std::string stepstatus;
 		if (succeeded)
-			stepstatus = L"s";
+			stepstatus = "s";
 		else
-			stepstatus = steps->GetString(L"jstonerror");
+			stepstatus = steps->GetString("jstonerror");
 
-		rc = threadConn->ExecuteVoid(
-			L"UPDATE pgagent.pga_jobsteplog "
-			L"   SET jslduration = now() - jslstart, "
-			L"       jslresult = " + NumToStr(rc) + L", jslstatus = '" + stepstatus + L"', " +
-			L"       jsloutput = " + threadConn->qtDbString(output) + L" " +
-			L" WHERE jslid=" + jslid);
-		if (rc != 1 || stepstatus == L"f")
+		rc = m_threadConn->ExecuteVoid(
+			"UPDATE pgagent.pga_jobsteplog "
+			"   SET jslduration = now() - jslstart, "
+			"       jslresult = " + NumToStr(rc) + ", jslstatus = '" + stepstatus + "', " +
+			"       jsloutput = " + m_threadConn->qtDbString(output) + " " +
+			" WHERE jslid=" + jslid);
+		if (rc != 1 || stepstatus == "f")
 		{
-			status = L"f";
+			m_status = "f";
 			return -1;
 		}
 		steps->MoveNext();
 	}
 
-	status = L"s";
+	m_status = "s";
 	return 0;
 }
 
 
-JobThread::JobThread(const std::wstring &jid)
+JobThread::JobThread(const std::string &jid)
     : m_jobid(jid)
 {
-	LogMessage((L"Creating job thread for job " + m_jobid), LOG_DEBUG);
+	LogMessage("Creating job thread for job " + m_jobid, LOG_DEBUG);
 }
 
 
 JobThread::~JobThread()
 {
-	LogMessage(L"Destroying job thread for job " + m_jobid, LOG_DEBUG);
+	LogMessage("Destroying job thread for job " + m_jobid, LOG_DEBUG);
 }
 
 
@@ -409,10 +441,10 @@ void JobThread::operator()()
 			// "internal error" status in the joblog table, to leave
 			// a trace of fact that we tried to launch the job.
 			DBresultPtr res = threadConn->Execute(
-				L"INSERT INTO pgagent.pga_joblog(jlgid, jlgjobid, jlgstatus) "
-				L"VALUES (nextval('pgagent.pga_joblog_jlgid_seq'), " +
-				m_jobid + L", 'i')"
-				);
+				"INSERT INTO pgagent.pga_joblog(jlgid, jlgjobid, jlgstatus) "
+				"VALUES (nextval('pgagent.pga_joblog_jlgid_seq'), " +
+				m_jobid + ", 'i')"
+			);
 			if (res)
 				res = NULL;
 		}

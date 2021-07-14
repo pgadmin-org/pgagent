@@ -58,8 +58,10 @@ void CheckForInterrupt()
 	serviceIsRunning = true;
 }
 
-void LogMessage(const std::wstring &msg, const int &level)
+void LogMessage(const std::string &_msg, const int &level)
 {
+  const std::wstring msg = s2ws(_msg);
+
 	if (eventHandle)
 	{
 		LPCWSTR tmp;
@@ -239,6 +241,7 @@ bool initService()
 	pgagentInitialized = false;
 
 	threadHandle = (HANDLE)_beginthreadex(0, 0, threadProcedure, 0, 0, &tid);
+
 	while (!pgagentInitialized)
 	{
 		if (eventHandle)
@@ -297,7 +300,7 @@ void CALLBACK serviceHandler(DWORD ctl)
 
 void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
 {
-	serviceName = CharToWString((const char *)argv[0]);
+	serviceName = s2ws((const char *)argv[0]);
 	serviceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
 	serviceStatus.dwCurrentState = SERVICE_START_PENDING;
 	serviceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_PAUSE_CONTINUE;
@@ -305,9 +308,11 @@ void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
 	serviceStatus.dwCheckPoint = 0;
 	serviceStatus.dwWaitHint = 15000;
 	serviceStatusHandle = RegisterServiceCtrlHandlerW(serviceName.c_str(), serviceHandler);
+
 	if (serviceStatusHandle)
 	{
 		SetServiceStatus(serviceStatusHandle, &serviceStatus);
+
 		if (initService())
 		{
 			serviceStatus.dwCurrentState = SERVICE_RUNNING;
@@ -317,12 +322,8 @@ void CALLBACK serviceMain(DWORD argc, LPTSTR *argv)
 			serviceStatus.dwCurrentState = SERVICE_STOPPED;
 
 		SetServiceStatus(serviceStatusHandle, &serviceStatus);
-
-
 	}
 }
-
-
 
 
 ////////////////////////////////////////////////////////////
@@ -365,7 +366,7 @@ bool installService(const std::wstring &serviceName, const std::wstring &executa
 				(LPTSTR)&lpMsgBuf,
 				0, NULL
 				);
-			LogMessage((boost::wformat(L"%s") % lpMsgBuf).str(), LOG_ERROR);
+			LogMessage(ws2s((boost::wformat(L"%s") % lpMsgBuf).str()), LOG_ERROR);
 		}
 
 		CloseServiceHandle(manager);
@@ -411,14 +412,18 @@ bool installService(const std::wstring &serviceName, const std::wstring &executa
 
 		if (ERROR_SUCCESS != last_error)
 		{
-			LogMessage(L"Could not set the event message file registry value.", LOG_WARNING);
+			LogMessage(
+				"Could not set the event message file registry value.", LOG_WARNING
+			);
 		}
 
 		RegCloseKey(key);
 	}
 	else
 	{
-		LogMessage(L"Could not open the message source registry key.", LOG_WARNING);
+		LogMessage(
+			"Could not open the message source registry key.", LOG_WARNING
+		);
 	}
 
 	return done;
@@ -462,28 +467,28 @@ bool removeService(const std::wstring &serviceName)
 	DWORD last_error = RegDeleteKeyW(HKEY_LOCAL_MACHINE, key_path.c_str());
 	if (ERROR_SUCCESS != last_error)
 	{
-		LogMessage(L"Failed to uninstall source", LOG_ERROR);
+		LogMessage("Failed to uninstall source", LOG_ERROR);
 	}
 
 	return done;
 }
 
-void usage(const std::wstring &executable)
+void usage(const std::string &executable)
 {
 	printVersion();
 
-	wprintf(L"Usage:\n");
-	wprintf(L"%s REMOVE <serviceName>\n", executable.c_str());
-	wprintf(L"%s INSTALL <serviceName> [options] <connect-string>\n", executable.c_str());
-	wprintf(L"%s DEBUG [options] <connect-string>\n", executable.c_str());
-	wprintf(L"options:\n");
-	wprintf(L"-v (display version info and then exit)\n");
-	wprintf(L"-u <user or DOMAIN\\user>\n");
-	wprintf(L"-p <password>\n");
-	wprintf(L"-d <displayname>\n");
-	wprintf(L"-t <poll time interval in seconds (default 10)>\n");
-	wprintf(L"-r <retry period after connection abort in seconds (>=10, default 30)>\n");
-	wprintf(L"-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n");
+	printf("Usage:\n");
+	printf("%s REMOVE <serviceName>\n", executable.c_str());
+	printf("%s INSTALL <serviceName> [options] <connect-string>\n", executable.c_str());
+	printf("%s DEBUG [options] <connect-string>\n", executable.c_str());
+	printf("options:\n");
+	printf("-v (display version info and then exit)\n");
+	printf("-u <user or DOMAIN\\user>\n");
+	printf("-p <password>\n");
+	printf("-d <displayname>\n");
+	printf("-t <poll time interval in seconds (default 10)>\n");
+	printf("-r <retry period after connection abort in seconds (>=10, default 30)>\n");
+	printf("-l <logging verbosity (ERROR=0, WARNING=1, DEBUG=2, default 0)>\n");
 }
 
 
@@ -496,17 +501,17 @@ void setupForRun(int argc, char **argv, bool debug, const std::wstring &executab
 	{
 		eventHandle = RegisterEventSourceW(0, serviceName.c_str());
 		if (!eventHandle)
-			LogMessage(L"Couldn't register event handle.", LOG_ERROR);
+			LogMessage("Couldn't register event handle.", LOG_ERROR);
 	}
 
-	setOptions(argc, argv, executable);
+	setOptions(argc, argv, ws2s(executable));
 }
 
 
 void main(int argc, char **argv)
 {
-	std::wstring executable;
-	executable.assign(CharToWString(*argv++));
+	std::string executable;
+	executable.assign(*argv++);
 
 	if (argc < 3)
 	{
@@ -515,11 +520,11 @@ void main(int argc, char **argv)
 	}
 
 	std::wstring command;
-	command.assign(CharToWString(*argv++));
+	command.assign(s2ws(*argv++));
 
 	if (command != L"DEBUG")
 	{
-		serviceName.assign(CharToWString(*argv++));
+		serviceName.assign(s2ws(*argv++));
 		argc -= 3;
 	}
 	else
@@ -538,35 +543,35 @@ void main(int argc, char **argv)
 				{
 					case 'u':
 					{
-						user = getArg(argc, argv);
+						user = s2ws(getArg(argc, argv));
 						break;
 					}
 					case 'p':
 					{
-						password = getArg(argc, argv);
+						password = s2ws(getArg(argc, argv));
 						break;
 					}
 					case 'd':
 					{
-						displayname = getArg(argc, argv);
+						displayname = s2ws(getArg(argc, argv));
 						break;
 					}
 					default:
 					{
-						args += L" " + CharToWString(*argv);
+						args += L" " + s2ws(*argv);
 						break;
 					}
 				}
 			}
 			else
 			{
-				args += L" " + CharToWString(*argv);
+				args += L" " + s2ws(*argv);
 			}
 
 			argv++;
 		}
 
-		bool rc = installService(serviceName, executable, args, displayname, user, password);
+		bool rc = installService(serviceName, s2ws(executable), args, displayname, user, password);
 	}
 	else if (command == L"REMOVE")
 	{
@@ -574,7 +579,7 @@ void main(int argc, char **argv)
 	}
 	else if (command == L"DEBUG")
 	{
-		setupForRun(argc, argv, true, executable);
+		setupForRun(argc, argv, true, s2ws(executable));
 
 		initService();
 #if START_SUSPENDED
@@ -590,7 +595,7 @@ void main(int argc, char **argv)
 		SERVICE_TABLE_ENTRY serviceTable[] =
 		{ (LPSTR)app.c_str(), serviceMain, 0, 0 };
 
-		setupForRun(argc, argv, false, executable);
+		setupForRun(argc, argv, false, s2ws(executable));
 		if (!StartServiceCtrlDispatcher(serviceTable))
 		{
 			DWORD rc = GetLastError();
@@ -608,4 +613,3 @@ void main(int argc, char **argv)
 }
 
 #endif // WIN32
-
