@@ -199,7 +199,7 @@ void MainLoop()
 			if (!hasSchemaVerFunc)
 			{
 				LogMessage(
-					"Couldn't find the function 'pgagent_schema_version' - please run pgagent_upgrade.sql.",
+					"Couldn't find the function 'pgagent_schema_version' - please run ALTER EXTENSION \"pgagent\" UPDATE;.",
 					LOG_ERROR
 				);
 			}
@@ -214,7 +214,7 @@ void MainLoop()
 				LogMessage(
 					"Unsupported schema version: " + strPgAgentSchemaVer +
 					". Version " + currentPgAgentVersion +
-					" is required - please run pgagent_upgrade.sql.",
+					" is required - please run ALTER EXTENSION \"pgagent\" UPDATE;.",
 					LOG_ERROR
 				);
 			}
