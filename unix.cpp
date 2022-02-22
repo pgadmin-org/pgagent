@@ -19,6 +19,7 @@
 #include <fstream>
 
 static boost::mutex s_loggerLock;
+bool printFileErrorMsg = true;
 
 using namespace std;
 
@@ -51,8 +52,14 @@ void LogMessage(const std::string &msg, const int &level)
 		out.open((const char *)log_file.c_str(), ios::out | ios::app);
 		if (!out.is_open())
 		{
-			fprintf(stderr, "Can not open the logfile!");
+			if (printFileErrorMsg)
+			{
+				fprintf(stderr, "Can not open the logfile '%s'", log_file.c_str());
+				printFileErrorMsg = false;
+			}
 			return;
+		} else {
+			printFileErrorMsg = true;
 		}
 	}
 	else
