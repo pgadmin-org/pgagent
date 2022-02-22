@@ -478,12 +478,9 @@ const std::string CONNinfo::Parse(
 		if (opt->dispchar[0] == 'D')
 			continue;
 
-		if (!forLogging)
-			val = opt->dispchar[0] == '*' ? "*****" : opt->val;
-		else
+		val = opt->val;
+		if (forLogging)
 		{
-			val = opt->val;
-
 			LogMessage((
 				boost::format("%s: %s") % opt->keyword %
 				(opt->dispchar[0] == '*' ? "*****" : val)).str(), LOG_DEBUG
