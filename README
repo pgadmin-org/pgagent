@@ -7,7 +7,7 @@ PostgreSQL.
 pgAgent is managed using pgAdmin (http://www.pgadmin.org). The pgAdmin
 documentation contains details of the setup and use of pgAgent with your
 PostgreSQL system. The latest build of the documentation can be found at
-http://www.pgadmin.org/docs/dev/pgagent.html.
+https://www.pgadmin.org/docs/pgadmin4/development/pgagent.html.
 
 Building pgAgent
 ----------------
