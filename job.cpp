@@ -86,6 +86,7 @@ int Job::Execute()
 
 	if (!steps)
 	{
+		LogMessage("No steps found for jobid " + m_jobid, LOG_WARNING);
 		m_status = "i";
 		return -1;
 	}
@@ -110,13 +111,17 @@ int Job::Execute()
 				"  FROM pgagent.pga_jobstep WHERE jstid=" + stepid);
 
 			if (res)
+			{
 				rc = res->RowsAffected();
+				LogMessage("Number of rows affected for jobid " + m_jobid, LOG_DEBUG);
+			}
 			else
 				rc = -1;
 		}
 
 		if (rc != 1)
 		{
+			LogMessage("Value of rc is " + std::to_string(rc) + " for job " + m_jobid, LOG_WARNING);
 			m_status = "i";
 			return -1;
 		}
@@ -380,6 +385,7 @@ int Job::Execute()
 			default:
 			{
 				output = "Invalid step type!";
+				LogMessage("Invalid step type!", LOG_WARNING);
 				m_status = "i";
 				return -1;
 			}
@@ -437,6 +443,9 @@ void JobThread::operator()()
 		}
 		else
 		{
+			LogMessage("Failed to launch the thread for job " + m_jobid +
+			". Inserting an entry to the joblog table with status 'i'", LOG_WARNING);
+
 			// Failed to launch the thread. Insert an entry with
 			// "internal error" status in the joblog table, to leave
 			// a trace of fact that we tried to launch the job.
