@@ -20,3 +20,4 @@ install_manifest.txt
 /regression.diffs
 /regression.out
 /pgagent.out
+.cmake
