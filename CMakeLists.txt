@@ -11,7 +11,11 @@
 ################################################################################
 # Initial setup
 ################################################################################
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+IF(APPLE)
+    CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+ELSE()
+    CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+ENDIF(APPLE)
 
 IF(COMMAND cmake_policy)
     CMAKE_POLICY(SET CMP0003 NEW)
@@ -40,12 +44,12 @@ IF(APPLE)
             SET(CMAKE_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES} CACHE STRING "Build architectures for OSX" FORCE)
         ELSE()
             SET(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architectures for OSX" FORCE)
-        ENDIF(NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "")
+        ENDIF(NOT ${CMAKE_OSX_ARCHITECTURES} STREQUAL "")
 
     ENDIF(NOT HAVE_CACHED_VALUES)
 
-   # Target Ventura
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=13")
+   # Target Tiger
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.9")
 ENDIF(APPLE)
 
 ################################################################################
@@ -58,12 +62,12 @@ PROJECT(pgagent)
 # in pgagent.sql and upgrade_pgagent.sql if the major version number is
 # changed. The full version number also needs to be included in pgAgent.rc and
 # pgaevent/pgamsgevent.rc at present.
-SET(VERSION "4.2.3")
+SET(VERSION "4.2.2")
 
 # CPack stuff
 SET(CPACK_PACKAGE_VERSION_MAJOR 4)
 SET(CPACK_PACKAGE_VERSION_MINOR 2)
-SET(CPACK_PACKAGE_VERSION_PATCH 3)
+SET(CPACK_PACKAGE_VERSION_PATCH 2)
 SET(CPACK_PACKAGE_NAME "pgAgent")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pgAgent is a job scheduling engine for PostgreSQL")
 SET(CPACK_PACKAGE_VENDOR "the pgAdmin Development Team")
@@ -105,7 +109,7 @@ SET (Boost_DEBUG FALSE)
 SET (Boost_USE_MULTITHREADED ${BOOST_MULTITHREADED_BUILD})
 SET (Boost_USE_STATIC_LIBS ${BOOST_STATIC_BUILD})
 
-FIND_PACKAGE(Boost REQUIRED CONFIG COMPONENTS filesystem regex date_time thread system)
+FIND_PACKAGE(Boost COMPONENTS filesystem regex date_time thread system)
 
 if(Boost_FOUND)
   INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
@@ -130,8 +134,6 @@ IF(WIN32)
 ENDIF(WIN32)
 
 ADD_EXECUTABLE(pgagent ${_srcs})
-SET_TARGET_PROPERTIES(pgagent PROPERTIES CXX_STANDARD 14)
-
 IF(UNIX AND NOT APPLE)
 TARGET_LINK_LIBRARIES(
         pgagent ${PG_LIBRARIES} ${Boost_LIBRARIES} -pthread
