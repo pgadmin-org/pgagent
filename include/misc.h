@@ -23,7 +23,7 @@ std::wstring  s2ws(const std::string &str);
 std::string   ws2s(const std::wstring &wstr);
 #endif
 std::string   generateRandomString(size_t length);
-std::string   getTemporaryDirectoryPath();
+bool          createUniqueTemporaryDirectory(const std::string &prefix, boost::filesystem::path &tempDir);
 
 class MutexLocker
 {
