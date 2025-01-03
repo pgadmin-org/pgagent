@@ -21,6 +21,8 @@
 
 #define APPVERSION_STR PGAGENT_VERSION
 
+namespace fs = boost::filesystem;
+
 // In unix.c or win32.c
 void usage(const std::string &executable);
 
@@ -49,7 +51,7 @@ void printVersion()
 {
 	printf("PostgreSQL Scheduling Agent\n");
 	printf("Version: %s\n", APPVERSION_STR);
-}
+};
 
 void setOptions(int argc, char **argv, const std::string &executable)
 {
@@ -192,41 +194,37 @@ std::string generateRandomString(size_t length)
 	return result;
 }
 
-std::string getTemporaryDirectoryPath()
+bool createUniqueTemporaryDirectory(const std::string &prefix, fs::path &uniqueDir)
 {
+	const unsigned short MAX_ATTEMPTS = 100;
+	unsigned short attempts = 0;
 
-#if BOOST_OS_WINDOWS
-    std::wstring tmp_dir;
+	try {
+		fs::path tempDir = fs::temp_directory_path();
 
-    wchar_t wcharPath[MAX_PATH];
+		do {
+			if (attempts++ >= MAX_ATTEMPTS)
+				return false;
 
-    if (GetTempPathW(MAX_PATH, wcharPath))
-		{
-        tmp_dir = wcharPath;
+			uniqueDir = tempDir / fs::unique_path(
+				prefix + "%%%%%%%%-%%%%-%%%%-%%%%-%%%%%%%%%%%%"
+			);
 
-				return ws2s(tmp_dir);
-		}
-    return "";
-#else
-    // Read this environment variable (TMPDIR, TMP, TEMP, TEMPDIR) and if not found then use "/tmp"
-    std::string tmp_dir = "/tmp";
-    const char *s_tmp = getenv("TMPDIR");
+			// Check if exists
+			if (boost::filesystem::is_directory(uniqueDir))
+				continue;
 
-    if (s_tmp != NULL)
-        return s_tmp;
+			// Create the directory securely
+			if (!fs::create_directory(uniqueDir)) {
+				return false;
+			}
 
-		s_tmp = getenv("TMP");
-		if (s_tmp != NULL)
-			return s_tmp;
+			// Set appropriate permissions (example: owner read/write/execute only)
+			fs::permissions(uniqueDir, boost::filesystem::owner_all);
 
-		s_tmp = getenv("TEMP");
-		if (s_tmp != NULL)
-			return s_tmp;
-
-		s_tmp = getenv("TEMPDIR");
-		if (s_tmp != NULL)
-			return s_tmp;
-
-		return tmp_dir;
-#endif
+			return true;
+		} while (true);
+	} catch (const fs::filesystem_error &ex) {
+		return false;
+	}
 }

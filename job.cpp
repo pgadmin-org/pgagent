@@ -163,45 +163,41 @@ int Job::Execute()
           LOG_DEBUG
 				);
 
-				// Get a temporary filename, then reuse it to create an empty directory.
-				std::string sDirectory = getTemporaryDirectoryPath();
-				std::string sFilesName = std::string("");
-				std::string prefix = std::string("pga_");
+				namespace fs = boost::filesystem;
 
-				// Generate random string of 6 characters long to make unique dir name
-				std::string result = generateRandomString(7);
-				sFilesName = prefix + m_jobid + std::string("_") + stepid + std::string("_") + result;
+				// Generate unique temporary directory
+				std::string prefix = (
+					boost::format("pga_%s_%s_") % m_jobid % stepid
+				).str();
+
+				fs::path jobDir;
+				fs::path filepath((
+					boost::format("%s_%s.%s") %
+					m_jobid % stepid %
 #if BOOST_OS_WINDOWS
-				std::string sModel = (boost::format("%s\\%s") % sDirectory % sFilesName).str();
+					".bat"
 #else
-				std::string sModel = (boost::format("%s/%s") % sDirectory % sFilesName).str();
+					".scr"
 #endif
-				std::string dirname = sModel;
+				).str());
+				fs::path errorFilePath(
+					(boost::format("%s_%s_error.txt") % m_jobid % stepid).str()
+				);
 
-				if (dirname == "")
+				if (!createUniqueTemporaryDirectory(prefix, jobDir))
 				{
 					output = "Couldn't get a temporary filename!";
 					LogMessage(output, LOG_WARNING);
 					rc = -1;
+
 					break;
 				}
 
-				if (!boost::filesystem::create_directory(boost::filesystem::path(dirname)))
-				{
-					LogMessage(
-						"Couldn't create temporary directory: " + dirname, LOG_WARNING
-					);
-					rc = -1;
-					break;
-				}
+				filepath = jobDir / filepath;
+				errorFilePath = jobDir / errorFilePath;
 
-#if BOOST_OS_WINDOWS
-				std::string filename = dirname + "\\" + m_jobid + "_" + stepid + ".bat";
-				std::string errorFile = dirname + "\\" + m_jobid + "_" + stepid + "_error.txt";
-#else
-				std::string filename = dirname + "/" + m_jobid + "_" + stepid + ".scr";
-				std::string errorFile = dirname + "/" + m_jobid + "_" + stepid + "_error.txt";
-#endif
+				std::string filename = filepath.string();
+				std::string errorFile = errorFilePath.string();
 
 				std::string code = steps->GetString("jstcode");
 
@@ -222,8 +218,8 @@ int Job::Execute()
 						LOG_WARNING
 					);
 
-					if (boost::filesystem::exists(dirname))
-						boost::filesystem::remove_all(dirname);
+					if (boost::filesystem::exists(jobDir))
+						boost::filesystem::remove_all(jobDir);
 
 					rc = -1;
 					break;
@@ -234,14 +230,17 @@ int Job::Execute()
 					out_file.close();
 
 #if !BOOST_OS_WINDOWS
-					// change file permission to 700 for executable in linux
-					int ret = chmod((const char *)filename.c_str(), S_IRWXU);
-
-					if (ret != 0)
-						LogMessage(
-							"Error setting executable permission to file: " + filename,
-							LOG_DEBUG
+					// Change file permission to 700 for executable in linux
+					try {
+						boost::filesystem::permissions(
+							filepath, boost::filesystem::owner_all
 						);
+					} catch (const fs::filesystem_error &ex) {
+						LogMessage(
+							"Error setting executable permission to file: " +
+							filename, LOG_DEBUG
+						);
+					}
 #endif
 				}
 
@@ -368,10 +367,8 @@ int Job::Execute()
 				// output in the log, just throw warnings.
 				try
 				{
-					boost::filesystem::path dir_path(dirname);
-
-					if (boost::filesystem::exists(dir_path))
-						boost::filesystem::remove_all(dir_path);
+					if (boost::filesystem::exists(jobDir))
+						boost::filesystem::remove_all(jobDir);
 				}
 				catch (boost::filesystem::filesystem_error const & e)
 				{
