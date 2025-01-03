@@ -11,11 +11,7 @@
 ################################################################################
 # Initial setup
 ################################################################################
-IF(APPLE)
-    CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
-ELSE()
-    CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENDIF(APPLE)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 IF(COMMAND cmake_policy)
     CMAKE_POLICY(SET CMP0003 NEW)
@@ -62,7 +58,7 @@ PROJECT(pgagent)
 # in pgagent.sql and upgrade_pgagent.sql if the major version number is
 # changed. The full version number also needs to be included in pgAgent.rc and
 # pgaevent/pgamsgevent.rc at present.
-SET(VERSION "4.2.2")
+SET(VERSION "4.2.3")
 
 # CPack stuff
 SET(CPACK_PACKAGE_VERSION_MAJOR 4)

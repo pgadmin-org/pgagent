@@ -16,8 +16,8 @@ aaaPGAGENT      ICON    DISCARDABLE     "include/pgAgent.ico"
 
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION    4,2,2,0
-PRODUCTVERSION 4,2,2,0
+FILEVERSION    4,2,3,0
+PRODUCTVERSION 4,2,3,0
 FILEOS         VOS__WINDOWS32
 FILETYPE       VFT_APP
 BEGIN
@@ -25,15 +25,15 @@ BEGIN
     BEGIN
         BLOCK "040904E4"
         BEGIN
-            VALUE "FileVersion",     "4.2.2", "\0"
-            VALUE "File Version",    "4.2.2", "\0"
+            VALUE "FileVersion",     "4.2.3", "\0"
+            VALUE "File Version",    "4.2.3", "\0"
             VALUE "FileDescription", "pgAgent - PostgreSQL Scheduling Agent", "\0"
             VALUE "LegalCopyright",  "\251 2002 - 2024, The pgAdmin Development Team", "\0"
             VALUE "LegalTrademarks", "This software is released under the PostgreSQL Licence.", "\0"
             VALUE "InternalName",    "pgAgent", "\0"
             VALUE "OriginalFilename","pgagent.exe", "\0"
             VALUE "ProductName",     "pgAgent", "\0"
-            VALUE "ProductVersion",  "4.2.2", "\0"
+            VALUE "ProductVersion",  "4.2.3", "\0"
         END
     END
     BLOCK "VarFileInfo"
