@@ -231,7 +231,7 @@ void DBconn::Return()
 
 	// Cleanup
 	ExecuteVoid("RESET ALL");
-	m_lastError.empty();
+	m_lastError.clear();
 	m_inUse = false;
 
 	LogMessage((
