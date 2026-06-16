@@ -1,6 +1,9 @@
 pgAgent
 =======
 
+WARNING: pgAgent is deprecated and will not receive any further updates. 
+We recommend using pg_cron (https://github.com/citusdata/pg_cron) instead.
+
 This document describes the compilation of pgAgent, a job scheduler for
 PostgreSQL.
 
